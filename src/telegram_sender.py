@@ -76,6 +76,11 @@ class TelegramSender:
         if discount:
             lines.append(f"\U0001F3AF {discount}")
 
+        if offer.has_full_shipping:
+            lines.append("\U0001F69A <b>Frete Gr\u00E1tis FULL</b> - Receba amanh\u00E3!")
+        elif offer.has_free_shipping:
+            lines.append("\U0001F69A Frete Gr\u00E1tis")
+
         lines.extend([
             "",
             f"\U0001F6D2 <a href='{url}'>Compre agora com meu link de afiliado</a>",

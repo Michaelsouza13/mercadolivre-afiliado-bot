@@ -13,7 +13,8 @@ class Offer:
     def __init__(self, title: str, product_id: str, current_price: float,
                  old_price: Optional[float] = None,
                  discount_label: str = "", image_url: str = "",
-                 product_url: str = ""):
+                 product_url: str = "",
+                 shipping_tags: Optional[list] = None):
         self.title = title
         self.product_id = product_id
         self.current_price = current_price
@@ -21,6 +22,7 @@ class Offer:
         self.discount_label = discount_label
         self.image_url = image_url
         self._product_url = product_url
+        self.shipping_tags = shipping_tags or []
 
     @property
     def id(self) -> str:
@@ -32,6 +34,23 @@ class Offer:
             return f"https://{self._product_url}"
         return f"https://www.mercadolivre.com.br/p/{self.product_id}"
 
+    @property
+    def discount_percent(self) -> int:
+        m = re.search(r'(\d+)%', self.discount_label)
+        if m:
+            return int(m.group(1))
+        if self.old_price and self.current_price:
+            return int((1 - self.current_price / self.old_price) * 100)
+        return 0
+
+    @property
+    def has_full_shipping(self) -> bool:
+        return "fulfillment" in self.shipping_tags
+
+    @property
+    def has_free_shipping(self) -> bool:
+        return "free_shipping" in self.shipping_tags or self.has_full_shipping
+
     def to_dict(self) -> dict:
         return {
             "title": self.title,
@@ -40,6 +59,7 @@ class Offer:
             "old_price": self.old_price,
             "discount_label": self.discount_label,
             "image_url": self.image_url,
+            "discount_percent": self.discount_percent,
         }
 
 
@@ -161,6 +181,7 @@ class MercadoLivreScraper:
                 current_price = 0.0
                 old_price = None
                 discount_label = ""
+                shipping_tags = []
 
                 for comp in components:
                     ctype = comp.get("type")
@@ -177,6 +198,11 @@ class MercadoLivreScraper:
                             old_price = previous["value"]
                         discount = price_data.get("discount_label", {})
                         discount_label = discount.get("text", "")
+
+                    if ctype in ("shipping", "shipping_v2"):
+                        tags = comp.get("shipping", {}).get("tags", [])
+                        if tags:
+                            shipping_tags = tags
 
                 if not title or not product_id:
                     continue
@@ -197,6 +223,7 @@ class MercadoLivreScraper:
                     discount_label=discount_label,
                     image_url=image_url,
                     product_url=product_url,
+                    shipping_tags=shipping_tags,
                 ))
             except Exception as e:
                 logger.debug("Error parsing item: %s", e)

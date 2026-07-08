@@ -1,6 +1,7 @@
 import logging
 import os
 import sys
+import time
 from urllib.parse import urlencode, urlparse, urlunparse
 
 from scraper import MercadoLivreScraper
@@ -54,6 +55,8 @@ def main():
     pages = int(os.environ.get("ML_PAGES", "3"))
     max_offers = int(os.environ.get("MAX_OFFERS_PER_RUN", "10"))
     promotion_type = os.environ.get("ML_PROMOTION_TYPE", "")
+    min_discount = int(os.environ.get("MIN_DISCOUNT", "0"))
+    send_delay = int(os.environ.get("SEND_DELAY_SECONDS", "60"))
 
     sender = TelegramSender(bot_token)
 
@@ -76,13 +79,16 @@ def main():
                 all_offers.append(o)
         logger.info("  -> %d ofertas (%s)", len(offers), label)
 
-    offers = all_offers
+    offers = [o for o in all_offers if o.discount_percent >= min_discount]
+    dropped = len(all_offers) - len(offers)
+    if dropped:
+        logger.info("Filtradas %d ofertas com desconto menor que %d%%", dropped, min_discount)
 
     if not offers:
         logger.info("Nenhuma oferta encontrada")
         return
 
-    logger.info("Encontradas %d ofertas no total (apos dedup)", len(offers))
+    logger.info("Encontradas %d ofertas no total (apos filtros)", len(offers))
 
     sent_ids = load_sent_ids()
     new_offers = [o for o in offers if o.id not in sent_ids]
@@ -92,14 +98,17 @@ def main():
         return
 
     to_send = new_offers[:max_offers]
-    logger.info("Enviando %d de %d ofertas novas", len(to_send), len(new_offers))
+    logger.info("Enviando %d de %d ofertas novas (delay %ds entre cada)", len(to_send), len(new_offers), send_delay)
 
     sent_count = 0
-    for offer in to_send:
+    for i, offer in enumerate(to_send):
+        if i > 0:
+            logger.info("Aguardando %d segundos...", send_delay)
+            time.sleep(send_delay)
         try:
             offer.url = make_affiliate_url(offer.clean_url, affiliate_tag)
             sender.send_offer(chat_id, offer)
-            sent_ids.add(offer.id)
+            sent_ids[offer.id] = time.time()
             sent_count += 1
             logger.info("Enviada: %s", offer.title[:60])
         except Exception as e:
