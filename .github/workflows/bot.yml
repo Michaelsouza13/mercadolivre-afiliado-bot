@@ -1,0 +1,34 @@
+name: Bot ML Afiliado
+
+on:
+  schedule:
+    - cron: '0 * * * *'
+  workflow_dispatch:
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+
+      - name: Restaurar cache de ofertas enviadas
+        uses: actions/cache@v3
+        with:
+          path: cache/
+          key: ml-offers-cache
+
+      - name: Executar bot
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          AFFILIATE_PARAM: ${{ secrets.AFFILIATE_PARAM }}
+          MAX_OFFERS_PER_RUN: ${{ vars.MAX_OFFERS_PER_RUN || '5' }}
+        run: python src/bot.py
