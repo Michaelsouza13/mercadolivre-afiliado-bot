@@ -60,24 +60,30 @@ def main():
 
     sender = TelegramSender(bot_token)
 
+    categories = [c.strip() for c in category.split(",")] if category else [""]
     promo_types = [""] if promotion_type else ["", "lightning"]
 
     all_offers = []
     seen_ids = set()
-    for ptype in promo_types:
-        label = f"promotion_type={ptype}" if ptype else "todas"
-        logger.info("Buscando ofertas (%s)...", label)
-        scraper = MercadoLivreScraper(category=category, pages=pages, promotion_type=ptype)
-        try:
-            offers = scraper.scrape()
-        except Exception as e:
-            logger.error("Erro ao buscar ofertas (%s): %s", label, e)
-            continue
-        for o in offers:
-            if o.id not in seen_ids:
-                seen_ids.add(o.id)
-                all_offers.append(o)
-        logger.info("  -> %d ofertas (%s)", len(offers), label)
+    for ci, cat in enumerate(categories):
+        for ptype in promo_types:
+            cat_label = cat if cat else "todas"
+            pt_label = f"promotion_type={ptype}" if ptype else "todas"
+            logger.info("Buscando ofertas [%s, %s]...", cat_label, pt_label)
+            scraper = MercadoLivreScraper(category=cat, pages=pages, promotion_type=ptype)
+            try:
+                offers = scraper.scrape()
+            except Exception as e:
+                logger.error("Erro ao buscar ofertas [%s, %s]: %s", cat_label, pt_label, e)
+                continue
+            for o in offers:
+                if o.id not in seen_ids:
+                    seen_ids.add(o.id)
+                    all_offers.append(o)
+            logger.info("  -> %d ofertas (%s, %s)", len(offers), cat_label, pt_label)
+        if ci < len(categories) - 1:
+            logger.info("Aguardando 2s antes da proxima categoria...")
+            time.sleep(2)
 
     offers = [o for o in all_offers if o.discount_percent >= min_discount]
     dropped = len(all_offers) - len(offers)
