@@ -12,13 +12,15 @@ logger = logging.getLogger(__name__)
 class Offer:
     def __init__(self, title: str, product_id: str, current_price: float,
                  old_price: Optional[float] = None,
-                 discount_label: str = "", image_url: str = ""):
+                 discount_label: str = "", image_url: str = "",
+                 product_url: str = ""):
         self.title = title
         self.product_id = product_id
         self.current_price = current_price
         self.old_price = old_price
         self.discount_label = discount_label
         self.image_url = image_url
+        self._product_url = product_url
 
     @property
     def id(self) -> str:
@@ -26,6 +28,8 @@ class Offer:
 
     @property
     def clean_url(self) -> str:
+        if self._product_url:
+            return f"https://{self._product_url}"
         return f"https://www.mercadolivre.com.br/p/{self.product_id}"
 
     def to_dict(self) -> dict:
@@ -124,6 +128,7 @@ class MercadoLivreScraper:
                         f"https://http2.mlstatic.com/D_{pics[0]['id']}-O.jpg"
                     )
 
+                product_url = meta.get("url", "")
                 offers.append(Offer(
                     title=title,
                     product_id=product_id,
@@ -131,6 +136,7 @@ class MercadoLivreScraper:
                     old_price=old_price,
                     discount_label=discount_label,
                     image_url=image_url,
+                    product_url=product_url,
                 ))
             except Exception as e:
                 logger.debug("Error parsing item: %s", e)
@@ -158,6 +164,7 @@ class MercadoLivreScraper:
                 title=title,
                 product_id=pid,
                 current_price=0.0,
+                product_url=href,
             ))
 
         return offers
