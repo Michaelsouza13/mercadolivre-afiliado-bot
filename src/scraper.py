@@ -44,7 +44,25 @@ class Offer:
 
 
 class MercadoLivreScraper:
-    OFFERS_URL = "https://www.mercadolivre.com.br/ofertas"
+    BASE_URL = "https://www.mercadolivre.com.br/ofertas"
+
+    CATEGORIAS = {
+        "celulares": "MLB1051",
+        "eletronicos": "MLB1000",
+        "informatica": "MLB1648",
+        "eletrodomesticos": "MLB1144",
+        "casa": "MLB1073",
+        "moda": "MLB1430",
+        "esportes": "MLB1276",
+        "ferramentas": "MLB1500",
+        "brinquedos": "MLB1132",
+        "supermercado": "MLB1403",
+        "automotivo": "MLB1743",
+        "moveis": "MLB1892",
+        "pet": "MLB1071",
+        "saude": "MLB1407",
+        "bebes": "MLB1384",
+    }
 
     HEADERS = {
         "User-Agent": (
@@ -56,13 +74,22 @@ class MercadoLivreScraper:
         "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
     }
 
-    def __init__(self, timeout: int = 30):
+    def __init__(self, category: str = "", timeout: int = 30):
+        self.category = category
         self.timeout = timeout
         self.session = requests.Session()
         self.session.headers.update(self.HEADERS)
 
+    @property
+    def offers_url(self) -> str:
+        url = self.BASE_URL
+        if self.category:
+            cat_id = self.CATEGORIAS.get(self.category.lower(), self.category)
+            url += f"?category={cat_id}"
+        return url
+
     def scrape(self, max_offers: int = 20) -> List[Offer]:
-        resp = self.session.get(self.OFFERS_URL, timeout=self.timeout)
+        resp = self.session.get(self.offers_url, timeout=self.timeout)
         resp.raise_for_status()
         resp.encoding = "utf-8"
 
