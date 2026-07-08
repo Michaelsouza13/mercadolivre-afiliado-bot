@@ -83,7 +83,7 @@ class TelegramSender:
 
         lines.extend([
             "",
-            f"\U0001F6D2 <a href='{url}'>Compre agora com meu link de afiliado</a>",
+            f"\U0001F6D2 <a href='{url}'>Ver Oferta</a>",
             "",
             "\U0001F4E2 Aproveite antes que acabe!",
         ])
