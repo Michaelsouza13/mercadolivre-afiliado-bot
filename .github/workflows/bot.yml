@@ -29,6 +29,6 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          AFFILIATE_PARAM: ${{ secrets.AFFILIATE_PARAM }}
+          AFFILIATE_TAG: ${{ secrets.AFFILIATE_TAG }}
           MAX_OFFERS_PER_RUN: ${{ vars.MAX_OFFERS_PER_RUN || '5' }}
         run: python src/bot.py

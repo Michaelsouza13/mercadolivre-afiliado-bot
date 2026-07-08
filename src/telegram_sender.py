@@ -32,34 +32,25 @@ class TelegramSender:
         message = self._format_offer_message(offer)
         return self.send_message(chat_id, message)
 
-    def _format_price(self, raw: str) -> str:
-        raw = raw.strip().replace(" ", "")
-        if "," in raw and "." in raw:
-            raw = raw.replace(".", "").replace(",", ",")
-        elif raw.isdigit() or raw.replace(".", "").isdigit():
-            try:
-                val = float(raw.replace(",", "."))
-                raw = f"{val:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-            except ValueError:
-                pass
-        return raw
+    def _price_str(self, value: float) -> str:
+        return f"R$ {value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
     def _format_offer_message(self, offer) -> str:
         title = offer.title.strip()
-        current = self._format_price(offer.current_price)
-        old = self._format_price(offer.old_price) if offer.old_price else ""
-        discount = offer.discount.strip() if offer.discount else ""
+        current = self._price_str(offer.current_price)
+        old = self._price_str(offer.old_price) if offer.old_price else ""
+        discount = offer.discount_label.strip() if offer.discount_label else ""
         url = offer.url.strip()
 
         lines = [
-            "\U0001F525 <b>PROMO\u00C7\u00C3O DO MERCADO LIVRE</b> \U0001F525",
+            "\U0001F525 <b>PROMO\u00E7\u00C3O DO MERCADO LIVRE</b> \U0001F525",
             "",
             f"\U0001F4CC <b>{title}</b>",
         ]
 
-        if old and old != current:
-            lines.append(f"\U0001F4B0 De: <s>R$ {old}</s>")
-        lines.append(f"\U0001F525 Por: <b>R$ {current}</b>")
+        if old:
+            lines.append(f"\U0001F4B0 De: <s>{old}</s>")
+        lines.append(f"\U0001F525 Por: <b>{current}</b>")
 
         if discount:
             lines.append(f"\U0001F3AF {discount}")

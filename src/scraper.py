@@ -10,27 +10,31 @@ logger = logging.getLogger(__name__)
 
 
 class Offer:
-    def __init__(self, title: str, url: str, current_price: str,
-                 old_price: str = "", discount: str = "",
-                 image_url: str = ""):
+    def __init__(self, title: str, product_id: str, current_price: float,
+                 old_price: Optional[float] = None,
+                 discount_label: str = "", image_url: str = ""):
         self.title = title
-        self.url = url
+        self.product_id = product_id
         self.current_price = current_price
         self.old_price = old_price
-        self.discount = discount
+        self.discount_label = discount_label
         self.image_url = image_url
 
     @property
     def id(self) -> str:
-        return self.url
+        return self.product_id
+
+    @property
+    def clean_url(self) -> str:
+        return f"https://www.mercadolivre.com.br/p/{self.product_id}"
 
     def to_dict(self) -> dict:
         return {
             "title": self.title,
-            "url": self.url,
+            "product_id": self.product_id,
             "current_price": self.current_price,
             "old_price": self.old_price,
-            "discount": self.discount,
+            "discount_label": self.discount_label,
             "image_url": self.image_url,
         }
 
@@ -44,10 +48,7 @@ class MercadoLivreScraper:
             "AppleWebKit/537.36 (KHTML, like Gecko) "
             "Chrome/120.0.0.0 Safari/537.36"
         ),
-        "Accept": (
-            "text/html,application/xhtml+xml,application/xml;"
-            "q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8"
-        ),
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
     }
 
@@ -57,215 +58,106 @@ class MercadoLivreScraper:
         self.session.headers.update(self.HEADERS)
 
     def scrape(self, max_offers: int = 20) -> List[Offer]:
-        resp = self.session.get(
-            self.OFFERS_URL,
-            timeout=self.timeout
-        )
+        resp = self.session.get(self.OFFERS_URL, timeout=self.timeout)
         resp.raise_for_status()
         resp.encoding = "utf-8"
 
-        soup = BeautifulSoup(resp.text, "html.parser")
+        offers = self._extract_from_json(resp.text)
+        if not offers:
+            offers = self._extract_from_html(resp.text)
 
-        offers = self._extract_jsonld(soup)
-        if offers:
-            logger.info("Extracted %d offers via JSON-LD", len(offers))
-            return offers[:max_offers]
-
-        offers = self._extract_initial_state(soup)
-        if offers:
-            logger.info("Extracted %d offers via __INITIAL_STATE__", len(offers))
-            return offers[:max_offers]
-
-        offers = self._extract_html(soup)
-        logger.info("Extracted %d offers via HTML parsing", len(offers))
         return offers[:max_offers]
 
-    def _extract_jsonld(self, soup: BeautifulSoup) -> List[Offer]:
-        offers = []
-        for script in soup.find_all("script", type="application/ld+json"):
-            try:
-                data = json.loads(script.string)
-                if isinstance(data, dict):
-                    if data.get("@type") == "ItemList":
-                        for item in data.get("itemListElement", []):
-                            product = item
-                            if isinstance(item, dict) and "item" in item:
-                                product = item["item"]
-                            offer = self._parse_ld_product(product)
-                            if offer:
-                                offers.append(offer)
-                    elif data.get("@type") == "Product":
-                        offer = self._parse_ld_product(data)
-                        if offer:
-                            offers.append(offer)
-            except (json.JSONDecodeError, AttributeError):
-                continue
-        return offers
+    def _extract_from_json(self, html: str) -> List[Offer]:
+        match = re.search(r'_n\.ctx\.r\s*=\s*(\{.+?\});', html, re.DOTALL)
+        if not match:
+            return []
 
-    def _parse_ld_product(self, data: dict) -> Optional[Offer]:
         try:
-            title = data.get("name", "")
-            url = data.get("url", "")
-            image = ""
-            img_data = data.get("image")
-            if isinstance(img_data, dict):
-                image = img_data.get("url", "")
-            elif isinstance(img_data, str):
-                image = img_data
+            ctx = json.loads(match.group(1))
+        except json.JSONDecodeError:
+            return []
 
-            offers_data = data.get("offers", {})
-            if isinstance(offers_data, dict):
-                offers_data = [offers_data]
+        app_props = ctx.get("appProps", {})
+        page_props = app_props.get("pageProps", {})
+        data = page_props.get("data", {})
+        items = data.get("items", [])
 
-            current_price = ""
-            for offer_data in offers_data if isinstance(offers_data, list) else []:
-                if isinstance(offer_data, dict) and offer_data.get("price"):
-                    current_price = str(offer_data["price"])
-                    break
-
-            if title and url and current_price:
-                return Offer(
-                    title=title, url=url,
-                    current_price=current_price,
-                    image_url=image,
-                )
-        except Exception as e:
-            logger.debug("JSON-LD parse error: %s", e)
-        return None
-
-    def _extract_initial_state(self, soup: BeautifulSoup) -> List[Offer]:
-        for script in soup.find_all("script"):
-            if not script.string:
-                continue
-            text = script.string
-
-            # Try common initial state patterns
-            for var in ["__INITIAL_STATE__", "__PRELOADED_STATE__", "__NEXT_DATA__"]:
-                pattern = re.compile(
-                    rf"(?:window\.)?{var}\s*=\s*(\{{.+?\}});",
-                    re.DOTALL
-                )
-                match = pattern.search(text)
-                if match:
-                    try:
-                        data = json.loads(match.group(1))
-                        offers = self._extract_from_state(data)
-                        if offers:
-                            return offers
-                    except json.JSONDecodeError:
-                        continue
-
-        next_data = soup.find("script", id="__NEXT_DATA__")
-        if next_data and next_data.string:
+        offers = []
+        for item in items:
             try:
-                data = json.loads(next_data.string)
-                offers = self._extract_from_state(data)
-                if offers:
-                    return offers
-            except json.JSONDecodeError:
-                pass
+                card = item.get("card", {})
+                meta = card.get("metadata", {})
+                product_id = meta.get("id", "")
+                if not product_id:
+                    continue
 
-        return []
+                components = card.get("components", [])
+                title = ""
+                current_price = 0.0
+                old_price = None
+                discount_label = ""
 
-    def _extract_from_state(self, obj: dict, depth: int = 0) -> List[Offer]:
-        offers = []
-        if depth > 6:
-            return offers
+                for comp in components:
+                    ctype = comp.get("type")
 
-        if isinstance(obj, dict):
-            if "name" in obj and "url" in obj:
-                title = str(obj.get("name", ""))
-                url = str(obj.get("url", ""))
-                prices = obj.get("prices", obj.get("price", {}))
-                if isinstance(prices, (int, float)):
-                    current_price = str(prices)
-                elif isinstance(prices, dict):
-                    current_price = str(prices.get("current_price", prices.get("price", "")))
-                else:
-                    current_price = str(prices) if prices else ""
+                    if ctype == "title":
+                        title = comp.get("title", {}).get("text", "")
 
-                old_price = ""
-                discount = ""
-                if isinstance(prices, dict):
-                    old_price = str(prices.get("old_price", ""))
-                    discount = str(prices.get("discount", ""))
+                    if ctype == "price":
+                        price_data = comp.get("price", {})
+                        current = price_data.get("current_price", {})
+                        current_price = current.get("value", 0.0)
+                        previous = price_data.get("previous_price", {})
+                        if previous.get("value"):
+                            old_price = previous["value"]
+                        discount = price_data.get("discount_label", {})
+                        discount_label = discount.get("text", "")
 
-                if title and url and current_price and current_price != "0":
-                    image = ""
-                    images = obj.get("images", obj.get("image", ""))
-                    if isinstance(images, list) and images:
-                        img = images[0]
-                        image = img if isinstance(img, str) else img.get("url", "")
-                    elif isinstance(images, str):
-                        image = images
+                if not title or not product_id:
+                    continue
 
-                    offers.append(Offer(
-                        title=title, url=url,
-                        current_price=current_price,
-                        old_price=old_price,
-                        discount=discount,
-                        image_url=image,
-                    ))
+                image_url = ""
+                pics = card.get("pictures", {}).get("pictures", [])
+                if pics:
+                    image_url = (
+                        f"https://http2.mlstatic.com/D_{pics[0]['id']}-O.jpg"
+                    )
 
-            for value in obj.values():
-                offers.extend(self._extract_from_state(value, depth + 1))
-
-        elif isinstance(obj, list):
-            for item in obj:
-                offers.extend(self._extract_from_state(item, depth + 1))
-
-        return offers
-
-    def _extract_html(self, soup: BeautifulSoup) -> List[Offer]:
-        offers = []
-        seen_urls = set()
-
-        product_links = soup.find_all(
-            "a", href=re.compile(r"/(?:p/MLB|produto/|item/|MLB)")
-        )
-        if not product_links:
-            product_links = soup.find_all(
-                "a", href=re.compile(r"mercadolivre\.com\.br")
-            )
-
-        for link in product_links:
-            href = link.get("href", "").strip()
-            product_url = href.split("?")[0]
-
-            if product_url in seen_urls or not product_url:
-                continue
-            seen_urls.add(product_url)
-
-            container = link.find_parent(["div", "li", "section"]) or link.parent
-
-            title = (link.get("title", "")
-                     or link.get_text(strip=True)
-                     or "")
-            title_el = container.find(["h2", "h3"], class_=re.compile(r"(title|name)", re.I))
-            if title_el:
-                title = title_el.get_text(strip=True)
-
-            prices = re.findall(
-                r"R\$\s*([\d\s.]+,\d{2})",
-                container.get_text()
-            )
-            current_price = prices[-1] if prices else ""
-            old_price = prices[0] if len(prices) > 1 else ""
-
-            discount_el = container.find(class_=re.compile(r"(discount|off|badge|desconto)", re.I))
-            discount = discount_el.get_text(strip=True) if discount_el else ""
-
-            img = container.find("img")
-            image_url = (img.get("src", "")
-                         or img.get("data-src", "")) if img else ""
-
-            if title and (current_price or old_price):
                 offers.append(Offer(
-                    title=title, url=product_url,
+                    title=title,
+                    product_id=product_id,
                     current_price=current_price,
                     old_price=old_price,
-                    discount=discount,
+                    discount_label=discount_label,
                     image_url=image_url,
                 ))
+            except Exception as e:
+                logger.debug("Error parsing item: %s", e)
+                continue
+
+        return offers
+
+    def _extract_from_html(self, html: str) -> List[Offer]:
+        soup = BeautifulSoup(html, "html.parser")
+        offers = []
+        seen = set()
+
+        for link in soup.find_all("a", href=re.compile(r"/p/MLB\d+")):
+            href = link.get("href", "")
+            match = re.search(r"/p/(MLB\d+)", href)
+            if not match:
+                continue
+            pid = match.group(1)
+            if pid in seen:
+                continue
+            seen.add(pid)
+
+            title = link.get("title", "") or link.get_text(strip=True)
+            offers.append(Offer(
+                title=title,
+                product_id=pid,
+                current_price=0.0,
+            ))
 
         return offers

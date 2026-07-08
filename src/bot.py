@@ -1,6 +1,7 @@
 import logging
 import os
 import sys
+from urllib.parse import urlencode, urlparse, urlunparse
 
 from scraper import MercadoLivreScraper
 from storage import load_sent_ids, save_sent_ids
@@ -14,6 +15,32 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+def make_affiliate_url(clean_url: str, affiliate_tag: str) -> str:
+    if not affiliate_tag:
+        return clean_url
+
+    parsed = urlparse(clean_url)
+    params = {}
+
+    if affiliate_tag.startswith("matt:"):
+        parts = affiliate_tag.split(":")
+        if len(parts) >= 3:
+            params["matt_word"] = parts[1]
+            params["matt_tool"] = parts[2]
+    else:
+        params["tag"] = affiliate_tag
+
+    existing = parsed.query
+    new_query = urlencode(params)
+    query = f"{existing}&{new_query}" if existing else new_query
+
+    return urlunparse(parsed._replace(query=query))
+
+
+def format_price(value: float) -> str:
+    return f"R$ {value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+
 def main():
     for var in ["TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID"]:
         if var not in os.environ:
@@ -22,53 +49,50 @@ def main():
 
     bot_token = os.environ["TELEGRAM_BOT_TOKEN"]
     chat_id = os.environ["TELEGRAM_CHAT_ID"]
-    affiliate_param = os.environ.get("AFFILIATE_PARAM", "")
+    affiliate_tag = os.environ.get("AFFILIATE_TAG", "")
     max_offers = int(os.environ.get("MAX_OFFERS_PER_RUN", "5"))
 
     scraper = MercadoLivreScraper()
     sender = TelegramSender(bot_token)
 
-    logger.info("Scraping Mercado Livre offers...")
+    logger.info("Buscando ofertas no Mercado Livre...")
     try:
         offers = scraper.scrape()
     except Exception as e:
-        logger.error("Failed to scrape: %s", e)
+        logger.error("Erro ao buscar ofertas: %s", e)
         sys.exit(2)
 
     if not offers:
-        logger.info("No offers found on page")
+        logger.info("Nenhuma oferta encontrada")
         return
 
-    logger.info("Found %d offers total", len(offers))
+    logger.info("Encontradas %d ofertas no total", len(offers))
 
     sent_ids = load_sent_ids()
     new_offers = [o for o in offers if o.id not in sent_ids]
 
     if not new_offers:
-        logger.info("No new offers to send (all already sent)")
+        logger.info("Nenhuma oferta nova para enviar")
         return
 
     to_send = new_offers[:max_offers]
-    logger.info("Sending %d of %d new offers", len(to_send), len(new_offers))
+    logger.info("Enviando %d de %d ofertas novas", len(to_send), len(new_offers))
 
     sent_count = 0
     for offer in to_send:
         try:
-            if affiliate_param:
-                sep = "&" if "?" in offer.url else "?"
-                offer.url = f"{offer.url}{sep}{affiliate_param.lstrip('?&')}"
-
+            offer.url = make_affiliate_url(offer.clean_url, affiliate_tag)
             sender.send_offer(chat_id, offer)
             sent_ids.add(offer.id)
             sent_count += 1
-            logger.info("Sent: %s", offer.title[:60])
+            logger.info("Enviada: %s", offer.title[:60])
         except Exception as e:
-            logger.error("Failed to send '%s': %s", offer.title[:40], e)
+            logger.error("Falha ao enviar '%s': %s", offer.title[:40], e)
 
     if sent_count > 0:
         save_sent_ids(sent_ids)
 
-    logger.info("Done. Sent %d offer(s) successfully", sent_count)
+    logger.info("Concluido. %d oferta(s) enviada(s)", sent_count)
 
 
 if __name__ == "__main__":
