@@ -27,6 +27,7 @@ jobs:
         with:
           path: cache/
           key: ml-offers-cache
+          save-always: true
 
       - name: Executar bot
         env:
