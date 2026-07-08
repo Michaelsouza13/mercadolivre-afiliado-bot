@@ -51,8 +51,8 @@ def main():
     chat_id = os.environ["TELEGRAM_CHAT_ID"]
     affiliate_tag = os.environ.get("AFFILIATE_TAG", "")
     category = os.environ.get("ML_CATEGORY", "")
-    pages = int(os.environ.get("ML_PAGES", "1"))
-    max_offers = int(os.environ.get("MAX_OFFERS_PER_RUN", "5"))
+    pages = int(os.environ.get("ML_PAGES", "3"))
+    max_offers = int(os.environ.get("MAX_OFFERS_PER_RUN", "10"))
     promotion_type = os.environ.get("ML_PROMOTION_TYPE", "")
 
     sender = TelegramSender(bot_token)
