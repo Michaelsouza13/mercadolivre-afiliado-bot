@@ -8,6 +8,8 @@ CACHE_DIR = Path(__file__).resolve().parent.parent / "cache"
 CACHE_FILE = CACHE_DIR / "sent_offers.json"
 MAX_CACHE_SIZE = 500
 
+CACHE_DIR.mkdir(parents=True, exist_ok=True)
+
 
 def load_sent_ids() -> set:
     if not CACHE_FILE.exists():

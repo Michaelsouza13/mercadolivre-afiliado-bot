@@ -53,22 +53,36 @@ def main():
     category = os.environ.get("ML_CATEGORY", "")
     pages = int(os.environ.get("ML_PAGES", "1"))
     max_offers = int(os.environ.get("MAX_OFFERS_PER_RUN", "5"))
+    promotion_type = os.environ.get("ML_PROMOTION_TYPE", "")
 
-    scraper = MercadoLivreScraper(category=category, pages=pages)
     sender = TelegramSender(bot_token)
 
-    logger.info("Buscando ofertas no Mercado Livre...")
-    try:
-        offers = scraper.scrape()
-    except Exception as e:
-        logger.error("Erro ao buscar ofertas: %s", e)
-        sys.exit(2)
+    promo_types = [""] if promotion_type else ["", "lightning"]
+
+    all_offers = []
+    seen_ids = set()
+    for ptype in promo_types:
+        label = f"promotion_type={ptype}" if ptype else "todas"
+        logger.info("Buscando ofertas (%s)...", label)
+        scraper = MercadoLivreScraper(category=category, pages=pages, promotion_type=ptype)
+        try:
+            offers = scraper.scrape()
+        except Exception as e:
+            logger.error("Erro ao buscar ofertas (%s): %s", label, e)
+            continue
+        for o in offers:
+            if o.id not in seen_ids:
+                seen_ids.add(o.id)
+                all_offers.append(o)
+        logger.info("  -> %d ofertas (%s)", len(offers), label)
+
+    offers = all_offers
 
     if not offers:
         logger.info("Nenhuma oferta encontrada")
         return
 
-    logger.info("Encontradas %d ofertas no total", len(offers))
+    logger.info("Encontradas %d ofertas no total (apos dedup)", len(offers))
 
     sent_ids = load_sent_ids()
     new_offers = [o for o in offers if o.id not in sent_ids]

@@ -74,9 +74,10 @@ class MercadoLivreScraper:
         "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
     }
 
-    def __init__(self, category: str = "", pages: int = 1, timeout: int = 30):
+    def __init__(self, category: str = "", pages: int = 1, promotion_type: str = "", timeout: int = 30):
         self.category = category
         self.pages = pages
+        self.promotion_type = promotion_type
         self.timeout = timeout
         self.session = requests.Session()
         self.session.headers.update(self.HEADERS)
@@ -86,6 +87,8 @@ class MercadoLivreScraper:
         params = {}
         if self.category:
             params["category"] = self.CATEGORIAS.get(self.category.lower(), self.category)
+        if self.promotion_type:
+            params["promotion_type"] = self.promotion_type
         if page > 1:
             params["page"] = str(page)
         if params:

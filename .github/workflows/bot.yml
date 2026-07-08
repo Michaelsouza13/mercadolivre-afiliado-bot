@@ -19,8 +19,11 @@ jobs:
       - name: Instalar dependencias
         run: pip install -r requirements.txt
 
+      - name: Garantir que diretorio cache existe
+        run: mkdir -p cache/
+
       - name: Restaurar cache de ofertas enviadas
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: cache/
           key: ml-offers-cache
@@ -31,6 +34,7 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           AFFILIATE_TAG: ${{ secrets.AFFILIATE_TAG }}
           ML_CATEGORY: ${{ vars.ML_CATEGORY || '' }}
-          ML_PAGES: ${{ vars.ML_PAGES || '1' }}
-          MAX_OFFERS_PER_RUN: ${{ vars.MAX_OFFERS_PER_RUN || '5' }}
+          ML_PAGES: ${{ vars.ML_PAGES || '3' }}
+          MAX_OFFERS_PER_RUN: ${{ vars.MAX_OFFERS_PER_RUN || '10' }}
+          ML_PROMOTION_TYPE: ${{ vars.ML_PROMOTION_TYPE || '' }}
         run: python src/bot.py
