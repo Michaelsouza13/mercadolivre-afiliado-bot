@@ -74,30 +74,60 @@ class MercadoLivreScraper:
         "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
     }
 
-    def __init__(self, category: str = "", timeout: int = 30):
+    def __init__(self, category: str = "", pages: int = 1, timeout: int = 30):
         self.category = category
+        self.pages = pages
         self.timeout = timeout
         self.session = requests.Session()
         self.session.headers.update(self.HEADERS)
 
-    @property
-    def offers_url(self) -> str:
+    def _make_url(self, page: int) -> str:
         url = self.BASE_URL
+        params = {}
         if self.category:
-            cat_id = self.CATEGORIAS.get(self.category.lower(), self.category)
-            url += f"?category={cat_id}"
+            params["category"] = self.CATEGORIAS.get(self.category.lower(), self.category)
+        if page > 1:
+            params["page"] = str(page)
+        if params:
+            url += "?" + "&".join(f"{k}={v}" for k, v in params.items())
         return url
 
     def scrape(self, max_offers: int = 20) -> List[Offer]:
-        resp = self.session.get(self.offers_url, timeout=self.timeout)
-        resp.raise_for_status()
-        resp.encoding = "utf-8"
+        import time
 
-        offers = self._extract_from_json(resp.text)
-        if not offers:
-            offers = self._extract_from_html(resp.text)
+        seen = set()
+        all_offers = []
 
-        return offers[:max_offers]
+        for page in range(1, self.pages + 1):
+            if page > 1:
+                time.sleep(1.5)
+
+            url = self._make_url(page)
+            logger.info("Buscando pagina %d/%d...", page, self.pages)
+
+            try:
+                resp = self.session.get(url, timeout=self.timeout)
+                resp.raise_for_status()
+                resp.encoding = "utf-8"
+            except Exception as e:
+                logger.warning("Erro na pagina %d: %s", page, e)
+                continue
+
+            page_offers = self._extract_from_json(resp.text)
+            if not page_offers:
+                page_offers = self._extract_from_html(resp.text)
+
+            for offer in page_offers:
+                if offer.id not in seen:
+                    seen.add(offer.id)
+                    all_offers.append(offer)
+
+            logger.info("  -> %d ofertas encontradas nessa pagina", len(page_offers))
+            if not page_offers:
+                break
+
+        logger.info("Total de %d ofertas unicas em %d pagina(s)", len(all_offers), self.pages)
+        return all_offers[:max_offers]
 
     def _extract_from_json(self, html: str) -> List[Offer]:
         match = re.search(r'_n\.ctx\.r\s*=\s*(\{.+?\});', html, re.DOTALL)

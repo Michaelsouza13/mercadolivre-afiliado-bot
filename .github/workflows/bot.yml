@@ -31,5 +31,6 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           AFFILIATE_TAG: ${{ secrets.AFFILIATE_TAG }}
           ML_CATEGORY: ${{ vars.ML_CATEGORY || '' }}
+          ML_PAGES: ${{ vars.ML_PAGES || '1' }}
           MAX_OFFERS_PER_RUN: ${{ vars.MAX_OFFERS_PER_RUN || '5' }}
         run: python src/bot.py

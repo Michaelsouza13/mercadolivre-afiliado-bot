@@ -51,9 +51,10 @@ def main():
     chat_id = os.environ["TELEGRAM_CHAT_ID"]
     affiliate_tag = os.environ.get("AFFILIATE_TAG", "")
     category = os.environ.get("ML_CATEGORY", "")
+    pages = int(os.environ.get("ML_PAGES", "1"))
     max_offers = int(os.environ.get("MAX_OFFERS_PER_RUN", "5"))
 
-    scraper = MercadoLivreScraper(category=category)
+    scraper = MercadoLivreScraper(category=category, pages=pages)
     sender = TelegramSender(bot_token)
 
     logger.info("Buscando ofertas no Mercado Livre...")
