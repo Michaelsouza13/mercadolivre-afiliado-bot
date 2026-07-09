@@ -26,8 +26,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: cache/
-          key: ml-offers-cache
-          save-always: true
+          key: ml-offers-cache-${{ github.run_id }}
+          restore-keys: |
+            ml-offers-cache-
 
       - name: Executar bot
         env:
