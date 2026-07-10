@@ -7,6 +7,7 @@ from urllib.parse import urlencode, urlparse, urlunparse
 from scraper import MercadoLivreScraper
 from storage import load_sent_ids, save_sent_ids
 from telegram_sender import TelegramSender
+from whatsapp_sender import WhatsAppSender
 
 logging.basicConfig(
     level=logging.INFO,
@@ -58,7 +59,12 @@ def main():
     min_discount = int(os.environ.get("MIN_DISCOUNT", "0"))
     send_delay = int(os.environ.get("SEND_DELAY_SECONDS", "60"))
 
-    sender = TelegramSender(bot_token)
+    sender_tg = TelegramSender(bot_token)
+
+    zap_token = os.environ.get("ZAP_API_TOKEN", "")
+    zap_instance = os.environ.get("ZAP_API_INSTANCE_ID", "")
+    zap_group = os.environ.get("ZAP_API_GROUP_JID", "")
+    sender_wp = WhatsAppSender(zap_token, zap_instance) if zap_token and zap_instance and zap_group else None
 
     categories = [c.strip() for c in category.split(",")] if category else [""]
     promo_types = [""] if promotion_type else ["", "lightning"]
@@ -113,12 +119,30 @@ def main():
             time.sleep(send_delay)
         try:
             offer.url = make_affiliate_url(offer.clean_url, affiliate_tag)
-            sender.send_offer(chat_id, offer)
+        except Exception as e:
+            logger.error("Falha ao gerar URL para '%s': %s", offer.title[:40], e)
+            continue
+
+        ok_tg = False
+        try:
+            sender_tg.send_offer(chat_id, offer)
+            ok_tg = True
+            logger.info("Telegram: %s", offer.title[:60])
+        except Exception as e:
+            logger.error("Falha no Telegram para '%s': %s", offer.title[:40], e)
+
+        ok_wp = False
+        if sender_wp:
+            try:
+                sender_wp.send_offer(zap_group, offer)
+                ok_wp = True
+                logger.info("WhatsApp: %s", offer.title[:60])
+            except Exception as e:
+                logger.error("Falha no WhatsApp para '%s': %s", offer.title[:40], e)
+
+        if ok_tg or ok_wp:
             sent_ids[offer.id] = time.time()
             sent_count += 1
-            logger.info("Enviada: %s", offer.title[:60])
-        except Exception as e:
-            logger.error("Falha ao enviar '%s': %s", offer.title[:40], e)
 
     if sent_count > 0:
         save_sent_ids(sent_ids)
