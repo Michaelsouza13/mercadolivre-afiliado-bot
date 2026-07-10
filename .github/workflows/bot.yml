@@ -42,4 +42,7 @@ jobs:
           MIN_DISCOUNT: ${{ vars.MIN_DISCOUNT || '0' }}
           SEND_DELAY_SECONDS: ${{ vars.SEND_DELAY_SECONDS || '60' }}
           CACHE_EXPIRY_DAYS: ${{ vars.CACHE_EXPIRY_DAYS || '7' }}
+          ZAP_API_TOKEN: ${{ secrets.ZAP_API_TOKEN }}
+          ZAP_API_INSTANCE_ID: ${{ secrets.ZAP_API_INSTANCE_ID }}
+          ZAP_API_GROUP_JID: ${{ secrets.ZAP_API_GROUP_JID }}
         run: python src/bot.py
