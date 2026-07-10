@@ -201,9 +201,11 @@ async def trigger_run(request: Request):
             )
             if resp.status_code not in (204, 200, 201):
                 logger.error("GitHub trigger failed: %s %s", resp.status_code, resp.text)
+                msg = f"Falha ao acionar GitHub Actions: {resp.status_code}"
+                if resp.status_code == 404:
+                    msg += ". Verifique se o GH_TOKEN tem o escopo 'workflow' e se GH_REPO esta no formato 'usuario/repo'"
                 return render_template("index.html", request=request, config=get_all_config(),
-                                       runs=get_recent_runs(10),
-                                       error=f"Falha ao acionar GitHub Actions: {resp.status_code}")
+                                       runs=get_recent_runs(10), error=msg)
     except Exception as e:
         logger.error("GitHub trigger error: %s", e)
         return render_template("index.html", request=request, config=get_all_config(),
