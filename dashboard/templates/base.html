@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Maika Promos{% endblock %}</title>
+    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f172a; color: #e2e8f0; min-height: 100vh;
+        }
+        nav {
+            background: #1e293b; padding: 0 1.5rem; display: flex;
+            align-items: center; height: 56px; border-bottom: 1px solid #334155;
+        }
+        nav a {
+            color: #94a3b8; text-decoration: none; padding: 0.5rem 1rem;
+            font-size: 0.875rem; font-weight: 500; border-radius: 6px;
+            transition: all 0.15s;
+        }
+        nav a:hover, nav a.active { color: #f8fafc; background: #334155; }
+        nav .brand { font-weight: 700; font-size: 1.1rem; color: #f8fafc; margin-right: 1.5rem; }
+        nav .spacer { flex: 1; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 1.5rem; }
+        h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 1rem; }
+        h2 { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.75rem; }
+        .card {
+            background: #1e293b; border: 1px solid #334155; border-radius: 8px;
+            padding: 1.25rem; margin-bottom: 1rem;
+        }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; }
+        .stat { text-align: center; }
+        .stat-value { font-size: 2rem; font-weight: 700; color: #38bdf8; }
+        .stat-label { font-size: 0.8rem; color: #94a3b8; margin-top: 0.25rem; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+        th, td { text-align: left; padding: 0.6rem 0.75rem; border-bottom: 1px solid #334155; }
+        th { color: #94a3b8; font-weight: 600; text-transform: uppercase; font-size: 0.75rem; }
+        tr:hover td { background: #33415540; }
+        .badge {
+            display: inline-block; padding: 0.15rem 0.5rem; border-radius: 999px;
+            font-size: 0.75rem; font-weight: 600;
+        }
+        .badge-success { background: #16653433; color: #4ade80; }
+        .badge-error   { background: #7f1d1d33; color: #f87171; }
+        .badge-info    { background: #1e3a5f33; color: #38bdf8; }
+        .badge-warning { background: #713f1233; color: #fbbf24; }
+        .btn {
+            display: inline-flex; align-items: center; gap: 0.35rem;
+            padding: 0.5rem 1rem; font-size: 0.875rem; font-weight: 500;
+            border: none; border-radius: 6px; cursor: pointer;
+            transition: all 0.15s; text-decoration: none;
+        }
+        .btn-primary { background: #2563eb; color: #fff; }
+        .btn-primary:hover { background: #1d4ed8; }
+        .btn-danger  { background: #dc2626; color: #fff; }
+        .btn-danger:hover  { background: #b91c1c; }
+        .btn-outline { background: transparent; color: #94a3b8; border: 1px solid #475569; }
+        .btn-outline:hover { background: #334155; color: #f8fafc; }
+        form label { display: block; font-size: 0.8rem; color: #94a3b8; margin-bottom: 0.25rem; font-weight: 500; }
+        form input, form select {
+            width: 100%; padding: 0.5rem 0.75rem; font-size: 0.875rem;
+            background: #0f172a; color: #e2e8f0; border: 1px solid #475569;
+            border-radius: 6px; margin-bottom: 0.75rem;
+        }
+        form input:focus { outline: none; border-color: #2563eb; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        .alert {
+            padding: 0.75rem 1rem; border-radius: 6px; margin-bottom: 1rem;
+            font-size: 0.875rem;
+        }
+        .alert-success { background: #16653433; color: #4ade80; border: 1px solid #166534; }
+        .alert-error   { background: #7f1d1d33; color: #f87171; border: 1px solid #7f1d1d; }
+        .text-muted { color: #64748b; }
+        .text-truncate { max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        @media (max-width: 640px) {
+            .container { padding: 1rem; }
+            .form-row { grid-template-columns: 1fr; }
+            nav { overflow-x: auto; gap: 0.25rem; }
+            nav a { padding: 0.5rem 0.6rem; font-size: 0.8rem; }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="/" class="brand">Maika Promos</a>
+        <a href="/" class="{% block nav_home %}{% endblock %}">Inicio</a>
+        <a href="/config" class="{% block nav_config %}{% endblock %}">Configuracao</a>
+        <a href="/history" class="{% block nav_history %}{% endblock %}">Historico</a>
+        <a href="/offers" class="{% block nav_offers %}{% endblock %}">Ofertas</a>
+        <span class="spacer"></span>
+    </nav>
+    <div class="container">
+        {% block content %}{% endblock %}
+    </div>
+</body>
+</html>

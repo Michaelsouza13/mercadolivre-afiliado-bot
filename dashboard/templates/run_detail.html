@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Execucao #{{ run.id }} — Maika Promos{% endblock %}
+
+{% block content %}
+<a href="/history" class="btn btn-outline" style="margin-bottom: 1rem;">&larr; Voltar</a>
+
+<h1>Execucao #{{ run.id }}</h1>
+
+<div class="grid">
+    <div class="card stat">
+        <div class="stat-value">{{ run.offers_found }}</div>
+        <div class="stat-label">Ofertas encontradas</div>
+    </div>
+    <div class="card stat">
+        <div class="stat-value">{{ run.offers_new }}</div>
+        <div class="stat-label">Ofertas novas</div>
+    </div>
+    <div class="card stat">
+        <div class="stat-value">{{ run.offers_sent }}</div>
+        <div class="stat-label">Ofertas enviadas</div>
+    </div>
+    <div class="card stat">
+        <span class="badge badge-{{ 'success' if run.status == 'success' else ('error' if run.status == 'error' else 'warning') }}" style="font-size: 1rem;">
+            {{ run.status }}
+        </span>
+        <div class="stat-label">Status</div>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Ofertas enviadas</h2>
+    {% if run.offers %}
+    <table>
+        <thead>
+            <tr>
+                <th>Produto</th>
+                <th>Preco</th>
+                <th>Desconto</th>
+                <th>ID</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for offer in run.offers %}
+            <tr>
+                <td class="text-truncate">{{ offer.title }}</td>
+                <td>R$ {{ "%.2f"|format(offer.price) }}</td>
+                <td>{{ offer.discount }}</td>
+                <td>{{ offer.product_id }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="text-muted">Nenhuma oferta enviada nesta execucao.</p>
+    {% endif %}
+</div>
+
+<div class="card">
+    <h2>Logs</h2>
+    {% if run.logs %}
+    <div style="background: #0f172a; border-radius: 6px; padding: 0.75rem; font-family: 'Courier New', monospace; font-size: 0.8rem; max-height: 400px; overflow-y: auto;">
+        {% for log in run.logs %}
+        <div style="color: {{ '#4ade80' if log.level == 'INFO' else ('f87171' if log.level == 'ERROR' else 'fbbf24') }};">
+            [{{ log.level }}] {{ log.message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-muted">Nenhum log registrado.</p>
+    {% endif %}
+</div>
+{% endblock %}

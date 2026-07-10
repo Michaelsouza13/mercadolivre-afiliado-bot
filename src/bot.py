@@ -1,12 +1,16 @@
+import json
 import logging
 import os
 import sys
 import time
 from urllib.parse import urlencode, urlparse, urlunparse
 
+import requests
+
 from scraper import MercadoLivreScraper
 from storage import load_sent_ids, save_sent_ids
 from telegram_sender import TelegramSender
+from utils import format_price
 from whatsapp_sender import WhatsAppSender
 
 logging.basicConfig(
@@ -39,8 +43,71 @@ def make_affiliate_url(clean_url: str, affiliate_tag: str) -> str:
     return urlunparse(parsed._replace(query=query))
 
 
-def format_price(value: float) -> str:
-    return f"R$ {value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+def _fetch_dashboard_config(dashboard_url: str, api_key: str):
+    try:
+        resp = requests.get(
+            f"{dashboard_url.rstrip('/')}/api/config",
+            headers={"Authorization": f"Bearer {api_key}"},
+            timeout=10,
+        )
+        resp.raise_for_status()
+        return resp.json()
+    except Exception as e:
+        logger.warning("Falha ao buscar config da dashboard: %s", e)
+        return None
+
+
+def _init_dashboard_run(dashboard_url: str, api_key: str):
+    try:
+        resp = requests.post(
+            f"{dashboard_url.rstrip('/')}/api/runs/init",
+            headers={"Authorization": f"Bearer {api_key}"},
+            timeout=10,
+        )
+        resp.raise_for_status()
+        return resp.json().get("run_id")
+    except Exception as e:
+        logger.warning("Falha ao iniciar run na dashboard: %s", e)
+        return None
+
+
+def _report_dashboard_run(dashboard_url: str, api_key: str, run_id: int,
+                          status: str, offers_found: int, offers_sent: int,
+                          offers_new: int, error_message: str = None,
+                          logs: list = None, sent_offers: list = None):
+    try:
+        payload = {
+            "run_id": run_id,
+            "status": status,
+            "offers_found": offers_found,
+            "offers_sent": offers_sent,
+            "offers_new": offers_new,
+            "error_message": error_message,
+            "logs": logs or [],
+            "sent_offers": sent_offers or [],
+        }
+        resp = requests.post(
+            f"{dashboard_url.rstrip('/')}/api/runs/{run_id}/finish",
+            headers={"Authorization": f"Bearer {api_key}"},
+            json=payload,
+            timeout=15,
+        )
+        resp.raise_for_status()
+    except Exception as e:
+        logger.warning("Falha ao reportar execucao: %s", e)
+
+
+def _matches_keywords(title: str, include: str, exclude: str) -> bool:
+    title_lower = title.lower()
+    if include:
+        keywords = [kw.strip().lower() for kw in include.split(",") if kw.strip()]
+        if keywords and not any(kw in title_lower for kw in keywords):
+            return False
+    if exclude:
+        keywords = [kw.strip().lower() for kw in exclude.split(",") if kw.strip()]
+        if keywords and any(kw in title_lower for kw in keywords):
+            return False
+    return True
 
 
 def main():
@@ -58,6 +125,28 @@ def main():
     promotion_type = os.environ.get("ML_PROMOTION_TYPE", "")
     min_discount = int(os.environ.get("MIN_DISCOUNT", "0"))
     send_delay = int(os.environ.get("SEND_DELAY_SECONDS", "60"))
+
+    dashboard_url = os.environ.get("DASHBOARD_URL", "")
+    dashboard_key = os.environ.get("BOT_API_KEY", "")
+    dashboard_run_id = None
+
+    if dashboard_url:
+        dc = _fetch_dashboard_config(dashboard_url, dashboard_key)
+        if dc:
+            category = dc.get("ML_CATEGORY", category)
+            pages = int(dc.get("ML_PAGES", pages))
+            max_offers = int(dc.get("MAX_OFFERS_PER_RUN", max_offers))
+            promotion_type = dc.get("ML_PROMOTION_TYPE", promotion_type)
+            min_discount = int(dc.get("MIN_DISCOUNT", min_discount))
+            send_delay = int(dc.get("SEND_DELAY_SECONDS", send_delay))
+            logger.info("Config carregada da dashboard")
+        dashboard_run_id = _init_dashboard_run(dashboard_url, dashboard_key)
+
+    include_kw = os.environ.get("INCLUDE_KEYWORDS", "")
+    exclude_kw = os.environ.get("EXCLUDE_KEYWORDS", "")
+    if dashboard_url and dc:
+        include_kw = dc.get("INCLUDE_KEYWORDS", include_kw)
+        exclude_kw = dc.get("EXCLUDE_KEYWORDS", exclude_kw)
 
     sender_tg = TelegramSender(bot_token)
 
@@ -91,27 +180,42 @@ def main():
             logger.info("Aguardando 2s antes da proxima categoria...")
             time.sleep(2)
 
-    offers = [o for o in all_offers if o.discount_percent >= min_discount]
+    offers = [o for o in all_offers if o.current_price > 0 and o.discount_percent >= min_discount]
     dropped = len(all_offers) - len(offers)
     if dropped:
-        logger.info("Filtradas %d ofertas com desconto menor que %d%%", dropped, min_discount)
+        logger.info("Filtradas %d ofertas (preco zero ou desconto < %d%%)", dropped, min_discount)
+
+    if include_kw or exclude_kw:
+        before = len(offers)
+        offers = [o for o in offers if _matches_keywords(o.title, include_kw, exclude_kw)]
+        kw_dropped = before - len(offers)
+        if kw_dropped:
+            logger.info("Filtradas %d ofertas por palavras-chave", kw_dropped)
+
+    offers_found = len(all_offers)
+    offers_after_filters = len(offers)
 
     if not offers:
-        logger.info("Nenhuma oferta encontrada")
+        logger.info("Nenhuma oferta encontrada apos filtros")
+        if dashboard_run_id:
+            _report_dashboard_run(dashboard_url, dashboard_key, dashboard_run_id,
+                                  "success", offers_found, 0, 0)
         return
-
-    logger.info("Encontradas %d ofertas no total (apos filtros)", len(offers))
 
     sent_ids = load_sent_ids()
     new_offers = [o for o in offers if o.id not in sent_ids]
 
     if not new_offers:
         logger.info("Nenhuma oferta nova para enviar")
+        if dashboard_run_id:
+            _report_dashboard_run(dashboard_url, dashboard_key, dashboard_run_id,
+                                  "success", offers_found, 0, 0)
         return
 
     to_send = new_offers[:max_offers]
     logger.info("Enviando %d de %d ofertas novas (delay %ds entre cada)", len(to_send), len(new_offers), send_delay)
 
+    sent_offers_data = []
     sent_count = 0
     for i, offer in enumerate(to_send):
         if i > 0:
@@ -143,11 +247,25 @@ def main():
         if ok_tg or ok_wp:
             sent_ids[offer.id] = time.time()
             sent_count += 1
+            sent_offers_data.append({
+                "product_id": offer.product_id,
+                "title": offer.title,
+                "price": offer.current_price,
+                "discount": offer.discount_label,
+            })
 
     if sent_count > 0:
         save_sent_ids(sent_ids)
 
     logger.info("Concluido. %d oferta(s) enviada(s)", sent_count)
+
+    if dashboard_run_id:
+        _report_dashboard_run(
+            dashboard_url, dashboard_key, dashboard_run_id,
+            "success" if sent_count > 0 else "error",
+            offers_found, sent_count, len(new_offers),
+            sent_offers=sent_offers_data,
+        )
 
 
 if __name__ == "__main__":

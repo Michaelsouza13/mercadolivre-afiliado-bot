@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block nav_history %}active{% endblock %}
+{% block title %}Historico — Maika Promos{% endblock %}
+
+{% block content %}
+<h1>Historico de Execucoes</h1>
+
+<div class="card">
+    {% if runs %}
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Data</th>
+                <th>Status</th>
+                <th>Encontradas</th>
+                <th>Novas</th>
+                <th>Enviadas</th>
+                <th>Detalhes</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for run in runs %}
+            <tr>
+                <td>#{{ run.id }}</td>
+                <td>{{ run.created_at }}</td>
+                <td>
+                    <span class="badge badge-{{ 'success' if run.status == 'success' else ('error' if run.status == 'error' else 'warning') }}">
+                        {{ run.status }}
+                    </span>
+                </td>
+                <td>{{ run.offers_found }}</td>
+                <td>{{ run.offers_new }}</td>
+                <td>{{ run.offers_sent }}</td>
+                <td><a href="/runs/{{ run.id }}" class="btn btn-outline" style="font-size: 0.75rem; padding: 0.25rem 0.6rem;">Ver</a></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="text-muted">Nenhuma execucao registrada ainda.</p>
+    {% endif %}
+</div>
+{% endblock %}

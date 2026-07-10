@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block nav_config %}active{% endblock %}
+{% block title %}Configuracao — Maika Promos{% endblock %}
+
+{% block content %}
+<h1>Configuracao do Bot</h1>
+
+{% if saved %}
+<div class="alert alert-success">Configuracao salva com sucesso!</div>
+{% endif %}
+
+<div class="card">
+    <form method="POST" action="/config">
+        <div class="form-row">
+            <div>
+                <label for="ML_CATEGORY">Categoria</label>
+                <input type="text" id="ML_CATEGORY" name="ML_CATEGORY" value="{{ config.get('ML_CATEGORY', '') }}" placeholder="ex: informatica, casa, celulares">
+                <span class="text-muted" style="font-size: 0.75rem;">Deixe vazio para todas. Multiplas separadas por virgula.</span>
+            </div>
+            <div>
+                <label for="ML_PAGES">Paginas para escanear</label>
+                <input type="number" id="ML_PAGES" name="ML_PAGES" value="{{ config.get('ML_PAGES', '3') }}" min="1" max="20">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div>
+                <label for="MAX_OFFERS_PER_RUN">Maximo de ofertas por execucao</label>
+                <input type="number" id="MAX_OFFERS_PER_RUN" name="MAX_OFFERS_PER_RUN" value="{{ config.get('MAX_OFFERS_PER_RUN', '10') }}" min="1" max="50">
+            </div>
+            <div>
+                <label for="MIN_DISCOUNT">Desconto minimo (%)</label>
+                <input type="number" id="MIN_DISCOUNT" name="MIN_DISCOUNT" value="{{ config.get('MIN_DISCOUNT', '0') }}" min="0" max="100">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div>
+                <label for="ML_PROMOTION_TYPE">Tipo de promocao</label>
+                <select id="ML_PROMOTION_TYPE" name="ML_PROMOTION_TYPE">
+                    <option value="" {% if not config.get('ML_PROMOTION_TYPE') %}selected{% endif %}>Todas</option>
+                    <option value="lightning" {% if config.get('ML_PROMOTION_TYPE') == 'lightning' %}selected{% endif %}>Relampago</option>
+                </select>
+            </div>
+            <div>
+                <label for="SEND_DELAY_SECONDS">Delay entre envios (segundos)</label>
+                <input type="number" id="SEND_DELAY_SECONDS" name="SEND_DELAY_SECONDS" value="{{ config.get('SEND_DELAY_SECONDS', '60') }}" min="1" max="300">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div>
+                <label for="CACHE_EXPIRY_DAYS">Expirar cache de ofertas (dias)</label>
+                <input type="number" id="CACHE_EXPIRY_DAYS" name="CACHE_EXPIRY_DAYS" value="{{ config.get('CACHE_EXPIRY_DAYS', '7') }}" min="1" max="90">
+            </div>
+            <div></div>
+        </div>
+
+        <div class="form-row">
+            <div>
+                <label for="INCLUDE_KEYWORDS">Palavras-chave para incluir</label>
+                <input type="text" id="INCLUDE_KEYWORDS" name="INCLUDE_KEYWORDS" value="{{ config.get('INCLUDE_KEYWORDS', '') }}" placeholder="perfume, cozinha, casa">
+                <span class="text-muted" style="font-size: 0.75rem;">So envia se o titulo tiver pelo menos uma. Deixe vazio para desligar.</span>
+            </div>
+            <div>
+                <label for="EXCLUDE_KEYWORDS">Palavras-chave para excluir</label>
+                <input type="text" id="EXCLUDE_KEYWORDS" name="EXCLUDE_KEYWORDS" value="{{ config.get('EXCLUDE_KEYWORDS', '') }}" placeholder="generico, similar, usado">
+                <span class="text-muted" style="font-size: 0.75rem;">Exclui ofertas com qualquer uma dessas palavras.</span>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="margin-top: 0.5rem;">Salvar configuracao</button>
+    </form>
+</div>
+
+<div class="card">
+    <h2>Instrucoes</h2>
+    <ul style="color: #94a3b8; font-size: 0.875rem; list-style: disc; padding-left: 1.25rem;">
+        <li>As alteracoes sao aplicadas na <strong>proxima execucao</strong> do bot.</li>
+        <li>Secrets (tokens do Telegram, ZAP-API, afiliado) permanecem no GitHub Secrets por seguranca.</li>
+        <li>Use "Acionar execucao agora" na pagina inicial para testar as alteracoes imediatamente.</li>
+    </ul>
+</div>
+{% endblock %}

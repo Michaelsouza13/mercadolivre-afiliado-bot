@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block nav_offers %}active{% endblock %}
+{% block title %}Ofertas Enviadas — Maika Promos{% endblock %}
+
+{% block content %}
+<h1>Ofertas Enviadas</h1>
+
+<div class="card">
+    {% if offers %}
+    <table>
+        <thead>
+            <tr>
+                <th>Produto</th>
+                <th>Preco</th>
+                <th>Desconto</th>
+                <th>ID</th>
+                <th>Data</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for offer in offers %}
+            <tr>
+                <td class="text-truncate">{{ offer.title }}</td>
+                <td>R$ {{ "%.2f"|format(offer.price) }}</td>
+                <td>{{ offer.discount }}</td>
+                <td>{{ offer.product_id }}</td>
+                <td>{{ offer.sent_at }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="text-muted">Nenhuma oferta enviada ainda.</p>
+    {% endif %}
+</div>
+{% endblock %}

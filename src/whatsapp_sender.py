@@ -2,6 +2,8 @@ import logging
 
 import requests
 
+from utils import format_price
+
 logger = logging.getLogger(__name__)
 
 
@@ -57,13 +59,10 @@ class WhatsAppSender:
                 logger.warning("Falha ao enviar imagem no WhatsApp, enviando so texto: %s", e)
         return self.send_message(group_jid, message)
 
-    def _price_str(self, value: float) -> str:
-        return f"R$ {value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-
     def _format_offer_message(self, offer) -> str:
         title = offer.title.strip()
-        current = self._price_str(offer.current_price)
-        old = self._price_str(offer.old_price) if offer.old_price else ""
+        current = format_price(offer.current_price)
+        old = format_price(offer.old_price) if offer.old_price else ""
         discount = offer.discount_label.strip() if offer.discount_label else ""
         url = offer.url.strip()
 

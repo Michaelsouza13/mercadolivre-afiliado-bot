@@ -236,8 +236,24 @@ class MercadoLivreScraper:
         offers = []
         seen = set()
 
-        for link in soup.find_all("a", href=re.compile(r"/p/MLB\d+")):
-            href = link.get("href", "")
+        cards = soup.find_all("li", class_=re.compile(r"ui-search-layout__item"))
+        if not cards:
+            cards = soup.find_all("div", class_=re.compile(r"poly-card"))
+
+        if not cards:
+            cards = soup.find_all("a", href=re.compile(r"/p/MLB\d+"))
+
+        for card in cards:
+            if card.name == "a":
+                href = card.get("href", "")
+                title_el = card
+            else:
+                link = card.find("a", href=re.compile(r"/p/MLB\d+"))
+                if not link:
+                    continue
+                href = link.get("href", "")
+                title_el = link
+
             match = re.search(r"/p/(MLB\d+)", href)
             if not match:
                 continue
@@ -246,11 +262,38 @@ class MercadoLivreScraper:
                 continue
             seen.add(pid)
 
-            title = link.get("title", "") or link.get_text(strip=True)
+            title = title_el.get("title", "") or title_el.get_text(strip=True)
+
+            current_price = 0.0
+            old_price = None
+            discount_label = ""
+
+            price_el = card.find("span", class_=re.compile(r"andes-money-amount__fraction"))
+            if price_el:
+                try:
+                    current_price = float(price_el.get_text(strip=True).replace(".", "").replace(",", "."))
+                except ValueError:
+                    current_price = 0.0
+
+            prev_price_el = card.find("s", class_=re.compile(r"andes-money-amount"))
+            if prev_price_el:
+                prev_fraction = prev_price_el.find("span", class_=re.compile(r"andes-money-amount__fraction"))
+                if prev_fraction:
+                    try:
+                        old_price = float(prev_fraction.get_text(strip=True).replace(".", "").replace(",", "."))
+                    except ValueError:
+                        old_price = None
+
+            discount_el = card.find("span", class_=re.compile(r"andes-discount"))
+            if discount_el:
+                discount_label = discount_el.get_text(strip=True)
+
             offers.append(Offer(
                 title=title,
                 product_id=pid,
-                current_price=0.0,
+                current_price=current_price,
+                old_price=old_price,
+                discount_label=discount_label,
                 product_url=href,
             ))
 

@@ -26,7 +26,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: cache/
-          key: ml-offers-cache-${{ github.run_id }}
+          key: ml-offers-cache
           restore-keys: |
             ml-offers-cache-
 
@@ -42,6 +42,10 @@ jobs:
           MIN_DISCOUNT: ${{ vars.MIN_DISCOUNT || '0' }}
           SEND_DELAY_SECONDS: ${{ vars.SEND_DELAY_SECONDS || '60' }}
           CACHE_EXPIRY_DAYS: ${{ vars.CACHE_EXPIRY_DAYS || '7' }}
+          INCLUDE_KEYWORDS: ${{ vars.INCLUDE_KEYWORDS || '' }}
+          EXCLUDE_KEYWORDS: ${{ vars.EXCLUDE_KEYWORDS || '' }}
+          DASHBOARD_URL: ${{ secrets.DASHBOARD_URL || '' }}
+          BOT_API_KEY: ${{ secrets.BOT_API_KEY || '' }}
           ZAP_API_TOKEN: ${{ secrets.ZAP_API_TOKEN }}
           ZAP_API_INSTANCE_ID: ${{ secrets.ZAP_API_INSTANCE_ID }}
           ZAP_API_GROUP_JID: ${{ secrets.ZAP_API_GROUP_JID }}
