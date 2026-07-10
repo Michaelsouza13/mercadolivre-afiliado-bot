@@ -3,13 +3,14 @@ import os
 import time
 from contextlib import asynccontextmanager
 from datetime import datetime
+from pathlib import Path
 from typing import Optional
 
 import httpx
 from fastapi import FastAPI, Form, HTTPException, Query, Request
-from fastapi.responses import RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
+from jinja2 import Environment, FileSystemLoader
 from pydantic import BaseModel
 
 from database import (
@@ -48,7 +49,15 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Maika Promos Dashboard", lifespan=lifespan)
-templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), "templates"))
+
+TEMPLATES_DIR = os.path.join(os.path.dirname(__file__), "templates")
+jinja_env = Environment(loader=FileSystemLoader(TEMPLATES_DIR), auto_reload=True)
+
+
+def render_template(name: str, request: Request, **context) -> HTMLResponse:
+    template = jinja_env.get_template(name)
+    html = template.render(request=request, **context)
+    return HTMLResponse(content=html)
 
 
 # ---- Auth helpers ----
@@ -112,20 +121,12 @@ async def index(request: Request):
     config = get_all_config()
     runs = get_recent_runs(10)
     last_run = runs[0] if runs else None
-    return templates.TemplateResponse(
-        "index.html",
-        {
-            "request": request,
-            "config": config,
-            "runs": runs,
-            "last_run": last_run,
-        },
-    )
+    return render_template("index.html", request=request, config=config, runs=runs, last_run=last_run)
 
 
 @app.get("/login")
 async def login_page(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request})
+    return render_template("login.html", request=request)
 
 
 @app.post("/login")
@@ -137,8 +138,9 @@ async def login(request: Request, password: str = Form(...)):
         resp = RedirectResponse(url="/", status_code=303)
         resp.set_cookie(key="session", value=SESSION_TOKEN, httponly=True, max_age=86400 * 7)
         return resp
-    return templates.TemplateResponse(
-        "login.html", {"request": request, "error": "Senha invalida"}, status_code=401
+    return HTMLResponse(
+        content=jinja_env.get_template("login.html").render(request=request, error="Senha invalida"),
+        status_code=401,
     )
 
 
@@ -146,9 +148,7 @@ async def login(request: Request, password: str = Form(...)):
 async def config_page(request: Request):
     login_required(request)
     config = get_all_config()
-    return templates.TemplateResponse(
-        "config.html", {"request": request, "config": config, "saved": request.query_params.get("saved")}
-    )
+    return render_template("config.html", request=request, config=config, saved=request.query_params.get("saved"))
 
 
 @app.post("/config")
@@ -171,7 +171,7 @@ async def config_save(request: Request):
 async def history_page(request: Request):
     login_required(request)
     runs = get_recent_runs(50)
-    return templates.TemplateResponse("history.html", {"request": request, "runs": runs})
+    return render_template("history.html", request=request, runs=runs)
 
 
 @app.get("/runs/{run_id}")
@@ -180,22 +180,15 @@ async def run_detail_page(request: Request, run_id: int):
     run = get_run_detail(run_id)
     if not run:
         raise HTTPException(status_code=404)
-    return templates.TemplateResponse("run_detail.html", {"request": request, "run": run})
+    return render_template("run_detail.html", request=request, run=run)
 
 
 @app.post("/trigger")
 async def trigger_run(request: Request):
     login_required(request)
     if not GH_TOKEN or not GH_REPO:
-        return templates.TemplateResponse(
-            "index.html",
-            {
-                "request": request,
-                "config": get_all_config(),
-                "runs": get_recent_runs(10),
-                "error": "GH_TOKEN e GH_REPO nao configurados no servidor",
-            },
-        )
+        return render_template("index.html", request=request, config=get_all_config(),
+                               runs=get_recent_runs(10), error="GH_TOKEN e GH_REPO nao configurados no servidor")
     try:
         async with httpx.AsyncClient(timeout=30) as client:
             resp = await client.post(
@@ -208,43 +201,23 @@ async def trigger_run(request: Request):
             )
             if resp.status_code not in (204, 200, 201):
                 logger.error("GitHub trigger failed: %s %s", resp.status_code, resp.text)
-                return templates.TemplateResponse(
-                    "index.html",
-                    {
-                        "request": request,
-                        "config": get_all_config(),
-                        "runs": get_recent_runs(10),
-                        "error": f"Falha ao acionar GitHub Actions: {resp.status_code}",
-                    },
-                )
+                return render_template("index.html", request=request, config=get_all_config(),
+                                       runs=get_recent_runs(10),
+                                       error=f"Falha ao acionar GitHub Actions: {resp.status_code}")
     except Exception as e:
         logger.error("GitHub trigger error: %s", e)
-        return templates.TemplateResponse(
-            "index.html",
-            {
-                "request": request,
-                "config": get_all_config(),
-                "runs": get_recent_runs(10),
-                "error": f"Erro ao acionar GitHub: {e}",
-            },
-        )
+        return render_template("index.html", request=request, config=get_all_config(),
+                               runs=get_recent_runs(10), error=f"Erro ao acionar GitHub: {e}")
 
-    return templates.TemplateResponse(
-        "index.html",
-        {
-            "request": request,
-            "config": get_all_config(),
-            "runs": get_recent_runs(10),
-            "success": "Execucao acionada com sucesso!",
-        },
-    )
+    return render_template("index.html", request=request, config=get_all_config(),
+                           runs=get_recent_runs(10), success="Execucao acionada com sucesso!")
 
 
 @app.get("/offers")
 async def offers_page(request: Request):
     login_required(request)
     offers = get_recent_offers(100)
-    return templates.TemplateResponse("offers.html", {"request": request, "offers": offers})
+    return render_template("offers.html", request=request, offers=offers)
 
 
 # ---- Bot API ----
