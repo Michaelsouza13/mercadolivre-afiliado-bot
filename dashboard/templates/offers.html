@@ -21,7 +21,7 @@
             {% for offer in offers %}
             <tr>
                 <td class="text-truncate">{{ offer.title }}</td>
-                <td>R$ {{ "%.2f"|format(offer.price) }}</td>
+                <td>R$ {{ "%.2f"|format(offer.price|float) }}</td>
                 <td>{{ offer.discount }}</td>
                 <td>{{ offer.product_id }}</td>
                 <td>{{ offer.sent_at }}</td>
