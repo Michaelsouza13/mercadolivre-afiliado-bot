@@ -31,12 +31,14 @@ class AliExpressScraper:
         self.session = requests.Session()
 
     def _sign(self, params: dict) -> str:
-        sorted_keys = sorted(params.keys())
+        filtered = {k: v for k, v in params.items()
+                    if k != "sign" and v is not None and str(v).strip() != ""}
+        sorted_keys = sorted(filtered.keys())
         raw = self.app_secret
         for k in sorted_keys:
-            raw += f"{k}{params[k]}"
+            raw += f"{k}{filtered[k]}"
         raw += self.app_secret
-        return hashlib.md5(raw.encode("utf-8")).hexdigest().lower()
+        return hashlib.md5(raw.encode("utf-8")).hexdigest().upper()
 
     def _call(self, method: str, params: dict) -> Optional[dict]:
         timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
@@ -49,6 +51,8 @@ class AliExpressScraper:
             "sign_method": "md5",
         }
         payload.update(params)
+        payload = {k: v for k, v in payload.items()
+                   if v is not None and str(v).strip() != ""}
         payload["sign"] = self._sign(payload)
 
         try:
