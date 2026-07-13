@@ -135,7 +135,9 @@ class AliExpressScraper:
             logger.info("AliExpress: nenhum produto retornado")
             return []
 
-        logger.info("AliExpress: primeiro produto raw: %s", str(products[0])[:600])
+        logger.info("AliExpress: primeiro produto raw keys=%s full=%s",
+                     list(products[0].keys()) if isinstance(products[0], dict) else "N/A",
+                     str(products[0])[:1500])
 
         for item in products:
             try:
