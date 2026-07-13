@@ -26,7 +26,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: cache/
-          key: ml-offers-cache
+          key: ml-offers-cache-${{ github.run_id }}
           restore-keys: |
             ml-offers-cache-
 
