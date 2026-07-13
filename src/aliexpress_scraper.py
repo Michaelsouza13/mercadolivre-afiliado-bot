@@ -61,14 +61,14 @@ class AliExpressScraper:
             resp = self.session.get(API_URL, params=payload, timeout=self.timeout)
             resp.raise_for_status()
             j = resp.json()
-            if logger.isEnabledFor(logging.DEBUG):
-                logger.debug("AliExpress raw response: %s", resp.text[:500])
+            if "error_response" in j:
+                err = j["error_response"]
+                logger.warning("AliExpress raw error: %s", resp.text[:800])
             return j
         except Exception as e:
             logger.error("AliExpress API error: %s", e)
-            if logger.isEnabledFor(logging.DEBUG):
-                logger.debug("AliExpress response text: %s",
-                             getattr(e, 'response', None).text[:500] if hasattr(e, 'response') else 'n/a')
+            if hasattr(e, 'response') and e.response is not None:
+                logger.warning("AliExpress response body: %s", e.response.text[:800])
             return None
 
     def _parse_price(self, value) -> float:
@@ -119,8 +119,9 @@ class AliExpressScraper:
         resp_result = resp.get("resp_result", {})
         resp_code = resp_result.get("resp_code", "200")
         if resp_code != "200":
-            logger.warning("AliExpress: resp_code=%s resp_msg=%s",
-                           resp_code, resp_result.get("resp_msg", ""))
+            logger.warning("AliExpress: resp_code=%s resp_msg=%s raw=%s",
+                           resp_code, resp_result.get("resp_msg", ""),
+                           str(data)[:500])
             return []
 
         result = resp_result.get("result")
