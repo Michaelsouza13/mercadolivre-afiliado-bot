@@ -134,7 +134,11 @@
                 <input type="text" id="ALIEXPRESS_CATEGORY_IDS" name="ALIEXPRESS_CATEGORY_IDS" value="{{ config.get('ALIEXPRESS_CATEGORY_IDS', '') }}" placeholder="200000452,200002662">
                 <span class="text-muted" style="font-size: 0.75rem;">Deixe vazio para todas. Ex: 200002662 (perfumes), 200000452 (beleza).</span>
             </div>
-            <div></div>
+            <div>
+                <label for="ALIEXPRESS_KEYWORDS">Palavras-chave para busca</label>
+                <input type="text" id="ALIEXPRESS_KEYWORDS" name="ALIEXPRESS_KEYWORDS" value="{{ config.get('ALIEXPRESS_KEYWORDS', '') }}" placeholder="perfume,celular,fone">
+                <span class="text-muted" style="font-size: 0.75rem;">Separadas por virgula. Opcional se usar categorias.</span>
+            </div>
         </div>
 
         <button type="submit" class="btn btn-primary" style="margin-top: 0.5rem;">Salvar configuracao</button>

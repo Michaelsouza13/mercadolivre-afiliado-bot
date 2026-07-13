@@ -54,6 +54,7 @@ jobs:
           ALIEXPRESS_TRACKING_ID: ${{ vars.ALIEXPRESS_TRACKING_ID || 'maikapromos' }}
           ALIEXPRESS_MAX_OFFERS: ${{ vars.ALIEXPRESS_MAX_OFFERS || '5' }}
           ALIEXPRESS_CATEGORY_IDS: ${{ vars.ALIEXPRESS_CATEGORY_IDS || '' }}
+          ALIEXPRESS_KEYWORDS: ${{ vars.ALIEXPRESS_KEYWORDS || '' }}
           DASHBOARD_URL: ${{ secrets.DASHBOARD_URL || '' }}
           BOT_API_KEY: ${{ secrets.BOT_API_KEY || '' }}
           ZAP_API_TOKEN: ${{ secrets.ZAP_API_TOKEN }}

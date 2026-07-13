@@ -217,6 +217,7 @@ def main():
     ae_tracking_id = os.environ.get("ALIEXPRESS_TRACKING_ID", "")
     ae_max_offers = int(os.environ.get("ALIEXPRESS_MAX_OFFERS", "5"))
     ae_category_ids = os.environ.get("ALIEXPRESS_CATEGORY_IDS", "")
+    ae_keywords = os.environ.get("ALIEXPRESS_KEYWORDS", "")
 
     dashboard_url = os.environ.get("DASHBOARD_URL", "")
     dashboard_key = os.environ.get("BOT_API_KEY", "")
@@ -233,6 +234,7 @@ def main():
             send_delay = int(dc.get("SEND_DELAY_SECONDS", send_delay))
             ae_max_offers = int(dc.get("ALIEXPRESS_MAX_OFFERS", str(ae_max_offers)))
             ae_category_ids = dc.get("ALIEXPRESS_CATEGORY_IDS", ae_category_ids)
+            ae_keywords = dc.get("ALIEXPRESS_KEYWORDS", ae_keywords)
             logger.info("Config carregada da dashboard")
         dashboard_run_id = _init_dashboard_run(dashboard_url, dashboard_key)
 
@@ -278,6 +280,7 @@ def main():
             tracking_id=ae_tracking_id,
             max_offers=ae_max_offers,
             category_ids=ae_category_ids,
+            keywords=ae_keywords,
         )
         try:
             ae_offers = ae_scraper.scrape()

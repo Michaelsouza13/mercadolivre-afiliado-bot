@@ -1,0 +1,35 @@
+APPLICATION FOR ALIEXPRESS AFFILIATES API (ADVANCED)
+
+Company/Brand: Maikapromos
+Contact Email: michael.santos.souza.mss@gmail.com
+
+--- Business Scenario Description (English) ---
+
+Our company, Maikapromos, operates a promotional offers broadcasting service focused on the Brazilian market. We run automated bots that collect discount offers from various e-commerce platforms and distribute them in real-time to our audience via Telegram and WhatsApp groups.
+
+We are applying for the AliExpress Affiliates API (Advanced) to integrate AliExpress products into our offer broadcasting system. Currently we already distribute offers from Mercado Livre (the largest Brazilian marketplace), and adding AliExpress will significantly increase the variety and value of deals we can provide to our followers.
+
+Our audience consists of Brazilian consumers looking for discounts on electronics, fashion, beauty products, perfumes, home goods, and more. Brazil has a strong demand for AliExpress products due to competitive pricing, especially in categories like electronics, gadgets, fashion accessories, and beauty items.
+
+With the Advanced API, we will use the following endpoints:
+- aliexpress.affiliate.hotproduct.query: To discover trending and high-commission products to recommend to our audience
+- aliexpress.affiliate.product.query: To search for specific products based on categories and keywords
+- aliexpress.affiliate.link.generate: To generate affiliate tracking links with our tracking ID
+
+Our bot runs hourly via GitHub Actions, automatically selecting the best offers based on discount percentage and relevance to our audience. Each broadcast reaches approximately 500+ active users across our Telegram channel and WhatsApp groups.
+
+We estimate generating 50-100 affiliate clicks per day initially, with growth potential as we expand our audience. By integrating AliExpress, we expect to increase our monthly commission revenue while providing better value to our followers.
+
+We are committed to complying with all AliExpress affiliate program terms and conditions, including proper disclosure of affiliate links and ethical marketing practices.
+
+--- Descricao do Cenario de Negocio (Portugues - resumo) ---
+
+A Maikapromos e um servico de divulgacao de ofertas promocionais para o mercado brasileiro. Operamos bots automatizados que coletam ofertas com desconto de diversas plataformas de e-commerce e distribuem em tempo real para nosso publico via grupos de Telegram e WhatsApp.
+
+Estamos solicitando a API Avancada de Afiliados do AliExpress para integrar produtos do AliExpress em nosso sistema de divulgacao. Atualmente ja distribuimos ofertas do Mercado Livre, e a adicao do AliExpress aumentara significativamente a variedade e qualidade das ofertas que podemos oferecer aos nossos seguidores.
+
+Nosso publico e composto por consumidores brasileiros em busca de descontos em eletronicos, moda, perfumes, beleza, casa e muito mais. O Brasil tem uma forte demanda por produtos do AliExpress devido aos precos competitivos.
+
+Com a API Avancada, utilizaremos os endpoints de consulta de produtos populares, busca por categorias e geracao de links de afiliado. Nosso bot roda automaticamente a cada hora, selecionando as melhores ofertas com base no percentual de desconto e relevancia.
+
+Estimamos gerar inicialmente 50-100 cliques de afiliados por dia, com potencial de crescimento. Nos comprometemos a cumprir todos os termos e condicoes do programa de afiliados do AliExpress.
