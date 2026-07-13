@@ -110,6 +110,33 @@
             </div>
         </div>
 
+        <hr style="border: none; border-top: 1px solid #334155; margin: 1.5rem 0;">
+
+        <h2>AliExpress</h2>
+        <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 1rem;">
+            Configure a integracao com o AliExpress. As credenciais (app_key, app_secret) sao configuradas via GitHub Secrets.
+        </p>
+
+        <div class="form-row">
+            <div>
+                <label for="ALIEXPRESS_MAX_OFFERS">Maximo de ofertas por execucao</label>
+                <input type="number" id="ALIEXPRESS_MAX_OFFERS" name="ALIEXPRESS_MAX_OFFERS" value="{{ config.get('ALIEXPRESS_MAX_OFFERS', '5') }}" min="0" max="20">
+            </div>
+            <div>
+                <label for="ALIEXPRESS_TRACKING_ID">Tracking ID</label>
+                <input type="text" id="ALIEXPRESS_TRACKING_ID" name="ALIEXPRESS_TRACKING_ID" value="{{ config.get('ALIEXPRESS_TRACKING_ID', 'maikapromos') }}" placeholder="maikapromos">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div>
+                <label for="ALIEXPRESS_CATEGORY_IDS">Categorias (IDs, separados por virgula)</label>
+                <input type="text" id="ALIEXPRESS_CATEGORY_IDS" name="ALIEXPRESS_CATEGORY_IDS" value="{{ config.get('ALIEXPRESS_CATEGORY_IDS', '') }}" placeholder="200000452,200002662">
+                <span class="text-muted" style="font-size: 0.75rem;">Deixe vazio para todas. Ex: 200002662 (perfumes), 200000452 (beleza).</span>
+            </div>
+            <div></div>
+        </div>
+
         <button type="submit" class="btn btn-primary" style="margin-top: 0.5rem;">Salvar configuracao</button>
     </form>
 </div>

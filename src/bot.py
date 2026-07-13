@@ -10,6 +10,7 @@ from urllib.parse import urlencode, urlparse, urlunparse
 
 import requests
 
+from aliexpress_scraper import AliExpressScraper
 from scraper import MercadoLivreScraper
 from storage import load_sent_ids, save_sent_ids
 from telegram_sender import TelegramSender
@@ -211,6 +212,12 @@ def main():
     min_discount = int(os.environ.get("MIN_DISCOUNT", "0"))
     send_delay = int(os.environ.get("SEND_DELAY_SECONDS", "60"))
 
+    ae_app_key = os.environ.get("ALIEXPRESS_APP_KEY", "")
+    ae_app_secret = os.environ.get("ALIEXPRESS_APP_SECRET", "")
+    ae_tracking_id = os.environ.get("ALIEXPRESS_TRACKING_ID", "")
+    ae_max_offers = int(os.environ.get("ALIEXPRESS_MAX_OFFERS", "5"))
+    ae_category_ids = os.environ.get("ALIEXPRESS_CATEGORY_IDS", "")
+
     dashboard_url = os.environ.get("DASHBOARD_URL", "")
     dashboard_key = os.environ.get("BOT_API_KEY", "")
     dashboard_run_id = None
@@ -224,6 +231,8 @@ def main():
             promotion_type = dc.get("ML_PROMOTION_TYPE", promotion_type)
             min_discount = int(dc.get("MIN_DISCOUNT", min_discount))
             send_delay = int(dc.get("SEND_DELAY_SECONDS", send_delay))
+            ae_max_offers = int(dc.get("ALIEXPRESS_MAX_OFFERS", str(ae_max_offers)))
+            ae_category_ids = dc.get("ALIEXPRESS_CATEGORY_IDS", ae_category_ids)
             logger.info("Config carregada da dashboard")
         dashboard_run_id = _init_dashboard_run(dashboard_url, dashboard_key)
 
@@ -260,6 +269,26 @@ def main():
         if ci < len(categories) - 1:
             logger.info("Aguardando 2s antes da proxima categoria...")
             time.sleep(2)
+
+    if ae_app_key and ae_app_secret and ae_tracking_id:
+        logger.info("Buscando ofertas do AliExpress...")
+        ae_scraper = AliExpressScraper(
+            app_key=ae_app_key,
+            app_secret=ae_app_secret,
+            tracking_id=ae_tracking_id,
+            max_offers=ae_max_offers,
+            category_ids=ae_category_ids,
+        )
+        try:
+            ae_offers = ae_scraper.scrape()
+            for o in ae_offers:
+                if o.id not in seen_ids:
+                    seen_ids.add(o.id)
+                    all_offers.append(o)
+            logger.info("  -> %d ofertas do AliExpress", len(ae_offers))
+        except Exception as e:
+            logger.error("Erro ao buscar ofertas AliExpress: %s", e)
+        time.sleep(2)
 
     offers = [o for o in all_offers if o.current_price > 0 and o.discount_percent >= min_discount]
     dropped = len(all_offers) - len(offers)

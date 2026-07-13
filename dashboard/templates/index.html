@@ -87,6 +87,8 @@
         <tr><td>Expirar cache</td><td>{{ config.get("CACHE_EXPIRY_DAYS", "7") }} dias</td></tr>
         <tr><td>Incluir palavras</td><td>{{ config.get("INCLUDE_KEYWORDS") or "nenhuma" }}</td></tr>
         <tr><td>Excluir palavras</td><td>{{ config.get("EXCLUDE_KEYWORDS") or "nenhuma" }}</td></tr>
+        <tr><td>AliExpress ofertas</td><td>{{ config.get("ALIEXPRESS_MAX_OFFERS", "0") }}</td></tr>
+        <tr><td>AliExpress categorias</td><td>{{ config.get("ALIEXPRESS_CATEGORY_IDS") or "todas" }}</td></tr>
         <tr><td>Canais</td><td>{{ config.get("CHANNELS") or "canal unico" }}</td></tr>
         {% if config.get("CHANNELS") %}
         <tr><td>Perfumes Telegram</td><td>{{ config.get("CHANNEL_PERFUMES_TELEGRAM") or "nao configurado" }}</td></tr>

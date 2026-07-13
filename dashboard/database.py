@@ -76,8 +76,11 @@ DEFAULT_CONFIG = {
     "CHANNELS": "",
     "CHANNEL_PERFUMES_TELEGRAM": "",
     "CHANNEL_PERFUMES_WHATSAPP": "",
-    "CHANNEL_PERFUMES_INCLUDE": "perfume,colonia,essencia,desodorante,aroma,fragrancia",
+    "CHANNEL_PERFUMES_INCLUDE": "perfume,colonia,essencia,desodorante,gloss,serum,mascara capilar,reparador capilar,hidratante facial,protetor solar,batom,maquiagem,condicionador,shampoo,leave-in,oleo capilar,fragrancia,perfumaria,cosmetico,paleta sombra,delineador,brilho labial",
     "CHANNEL_PERFUMES_EXCLUDE": "",
+    "ALIEXPRESS_MAX_OFFERS": "5",
+    "ALIEXPRESS_TRACKING_ID": "maikapromos",
+    "ALIEXPRESS_CATEGORY_IDS": "",
 }
 
 

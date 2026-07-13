@@ -90,6 +90,9 @@ class BotConfigResponse(BaseModel):
     CHANNEL_PERFUMES_WHATSAPP: str = ""
     CHANNEL_PERFUMES_INCLUDE: str = ""
     CHANNEL_PERFUMES_EXCLUDE: str = ""
+    ALIEXPRESS_MAX_OFFERS: int = 5
+    ALIEXPRESS_TRACKING_ID: str = ""
+    ALIEXPRESS_CATEGORY_IDS: str = ""
 
 
 class BotRunReport(BaseModel):
@@ -168,6 +171,8 @@ async def config_save(request: Request):
         "CHANNELS",
         "CHANNEL_PERFUMES_TELEGRAM", "CHANNEL_PERFUMES_WHATSAPP",
         "CHANNEL_PERFUMES_INCLUDE", "CHANNEL_PERFUMES_EXCLUDE",
+        "ALIEXPRESS_MAX_OFFERS", "ALIEXPRESS_TRACKING_ID",
+        "ALIEXPRESS_CATEGORY_IDS",
     ]:
         if key in form:
             items[key] = form[key]
