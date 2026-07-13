@@ -83,14 +83,13 @@ class AliExpressScraper:
             "ship_to_country": self.ship_country,
             "page_no": "1",
             "page_size": str(page_size),
-            "sort": "LAST_VOLUME_DESC",
         }
         if self.category_ids:
             params["category_ids"] = self.category_ids
         if self.keywords:
             params["keywords"] = self.keywords
         if not self.category_ids and not self.keywords:
-            params["keywords"] = "smartphone"
+            params["keywords"] = "fone"
 
         data = self._call(METHOD_PRODUCT_QUERY, params)
         if not data:
