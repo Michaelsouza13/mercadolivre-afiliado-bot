@@ -18,7 +18,7 @@ class AliExpressScraper:
     def __init__(self, app_key: str, app_secret: str, tracking_id: str,
                  max_offers: int = 5, category_ids: str = "",
                  keywords: str = "",
-                 currency: str = "BRL", language: str = "pt_BR",
+                 currency: str = "BRL", language: str = "PT",
                  ship_country: str = "BR", timeout: int = 30):
         self.app_key = app_key
         self.app_secret = app_secret
@@ -78,7 +78,7 @@ class AliExpressScraper:
         page_size = min(self.max_offers, 50)
         params = {
             "tracking_id": self.tracking_id,
-            "local_currency": self.currency,
+            "target_currency": self.currency,
             "target_language": self.language,
             "ship_to_country": self.ship_country,
             "page_no": "1",
@@ -90,7 +90,7 @@ class AliExpressScraper:
         if self.keywords:
             params["keywords"] = self.keywords
         if not self.category_ids and not self.keywords:
-            params["keywords"] = "promocao"
+            params["keywords"] = "smartphone"
 
         data = self._call(METHOD_PRODUCT_QUERY, params)
         if not data:
