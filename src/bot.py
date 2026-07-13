@@ -272,7 +272,7 @@ def main():
             logger.info("Aguardando 2s antes da proxima categoria...")
             time.sleep(2)
 
-    if ae_app_key and ae_app_secret and ae_tracking_id:
+    if ae_app_key and ae_app_secret:
         logger.info("Buscando ofertas do AliExpress...")
         ae_scraper = AliExpressScraper(
             app_key=ae_app_key,
