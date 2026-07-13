@@ -1,4 +1,4 @@
-cache/
-.env
+dashboard/data/
 __pycache__/
 *.pyc
+.env
