@@ -88,9 +88,8 @@ class AliExpressScraper:
             "page_no": "1",
             "page_size": str(page_size),
         }
-        # tracking_id propositalmente removido para teste
-        # if self.tracking_id:
-        #     params["tracking_id"] = self.tracking_id
+        if self.tracking_id:
+            params["tracking_id"] = self.tracking_id
         if self.category_ids:
             params["category_ids"] = self.category_ids
         if self.keywords:
@@ -136,26 +135,33 @@ class AliExpressScraper:
             logger.info("AliExpress: nenhum produto retornado")
             return []
 
+        logger.info("AliExpress: primeiro produto raw: %s", str(products[0])[:600])
+
         for item in products:
             try:
-                product_id = str(item.get("product_id", ""))
+                product_id = str(item.get("product_id", "") or "")
                 if not product_id:
                     continue
 
-                title = item.get("product_title", "").strip()
+                title = (item.get("product_title", "") or "").strip()
                 if not title:
                     continue
 
-                current_price = self._parse_price(item.get("sale_price", "0"))
-                old_price = self._parse_price(item.get("original_price", "0"))
+                current_price = self._parse_price(
+                    item.get("app_sale_price") or item.get("sale_price", "0")
+                )
+                old_price = self._parse_price(
+                    item.get("original_price", "0")
+                )
                 if old_price == 0 or old_price <= current_price:
                     old_price = None
 
                 discount_label = item.get("discount", "")
 
-                image_url = item.get("product_main_image_url", "")
+                img_list = item.get("product_small_image_urls", {})
+                image_url = img_list.get("string", [None])[0] if isinstance(img_list, dict) else item.get("product_main_image_url", "")
 
-                raw_url = item.get("promotion_link", "")
+                raw_url = item.get("promotion_link") or item.get("product_detail_url", "")
                 if raw_url.startswith("https://") or raw_url.startswith("http://"):
                     product_url = raw_url.split("://", 1)[1]
                 else:
