@@ -87,11 +87,36 @@ class AliExpressScraper:
             return []
 
         offers = []
+
+        if "error_response" in data:
+            err = data["error_response"]
+            logger.warning("AliExpress: erro da API: code=%s msg=%s",
+                           err.get("code"), err.get("msg"))
+            return []
+
         try:
-            products = data["aliexpress_affiliate_hotproduct_query_response"] \
-                ["resp_result"]["result"]["products"]["product"]
-        except (KeyError, TypeError):
-            logger.warning("AliExpress: resposta inesperada")
+            resp = data["aliexpress_affiliate_hotproduct_query_response"]
+        except KeyError:
+            logger.warning("AliExpress: resposta inesperada (chaves: %s)",
+                           list(data.keys()))
+            return []
+
+        resp_result = resp.get("resp_result", {})
+        resp_code = resp_result.get("resp_code", "200")
+        if resp_code != "200":
+            logger.warning("AliExpress: resp_code=%s resp_msg=%s",
+                           resp_code, resp_result.get("resp_msg", ""))
+            return []
+
+        result = resp_result.get("result")
+        if not result:
+            logger.warning("AliExpress: sem 'result' na resposta")
+            return []
+
+        products_data = result.get("products", {})
+        products = products_data.get("product", [])
+        if not products:
+            logger.info("AliExpress: nenhum produto retornado")
             return []
 
         for item in products:
