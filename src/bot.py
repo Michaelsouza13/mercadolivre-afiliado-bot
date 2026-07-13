@@ -12,6 +12,7 @@ import requests
 
 from aliexpress_scraper import AliExpressScraper
 from scraper import MercadoLivreScraper
+from shopee_scraper import ShopeeScraper
 from storage import load_sent_ids, save_sent_ids
 from telegram_sender import TelegramSender
 from utils import format_price
@@ -219,6 +220,10 @@ def main():
     ae_category_ids = os.environ.get("ALIEXPRESS_CATEGORY_IDS", "")
     ae_keywords = os.environ.get("ALIEXPRESS_KEYWORDS", "")
 
+    shopee_max_offers = int(os.environ.get("SHOPEE_MAX_OFFERS", "5"))
+    shopee_keywords = os.environ.get("SHOPEE_KEYWORDS", "")
+    shopee_min_discount = int(os.environ.get("SHOPEE_MIN_DISCOUNT", "5"))
+
     dashboard_url = os.environ.get("DASHBOARD_URL", "")
     dashboard_key = os.environ.get("BOT_API_KEY", "")
     dashboard_run_id = None
@@ -235,6 +240,9 @@ def main():
             ae_max_offers = int(dc.get("ALIEXPRESS_MAX_OFFERS", str(ae_max_offers)))
             ae_category_ids = dc.get("ALIEXPRESS_CATEGORY_IDS", ae_category_ids)
             ae_keywords = dc.get("ALIEXPRESS_KEYWORDS", ae_keywords)
+            shopee_max_offers = int(dc.get("SHOPEE_MAX_OFFERS", str(shopee_max_offers)))
+            shopee_keywords = dc.get("SHOPEE_KEYWORDS", shopee_keywords)
+            shopee_min_discount = int(dc.get("SHOPEE_MIN_DISCOUNT", str(shopee_min_discount)))
             logger.info("Config carregada da dashboard")
         dashboard_run_id = _init_dashboard_run(dashboard_url, dashboard_key)
 
@@ -292,6 +300,23 @@ def main():
         except Exception as e:
             logger.error("Erro ao buscar ofertas AliExpress: %s", e)
         time.sleep(2)
+
+    logger.info("Buscando ofertas da Shopee...")
+    shopee_scraper = ShopeeScraper(
+        max_offers=shopee_max_offers,
+        keywords=shopee_keywords,
+        min_discount=shopee_min_discount,
+    )
+    try:
+        shopee_offers = shopee_scraper.scrape()
+        for o in shopee_offers:
+            if o.id not in seen_ids:
+                seen_ids.add(o.id)
+                all_offers.append(o)
+        logger.info("  -> %d ofertas da Shopee", len(shopee_offers))
+    except Exception as e:
+        logger.error("Erro ao buscar ofertas Shopee: %s", e)
+    time.sleep(2)
 
     offers = [o for o in all_offers if o.current_price > 0 and o.discount_percent >= min_discount]
     dropped = len(all_offers) - len(offers)

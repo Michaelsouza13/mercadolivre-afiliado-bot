@@ -94,6 +94,9 @@ class BotConfigResponse(BaseModel):
     ALIEXPRESS_TRACKING_ID: str = ""
     ALIEXPRESS_CATEGORY_IDS: str = ""
     ALIEXPRESS_KEYWORDS: str = ""
+    SHOPEE_MAX_OFFERS: int = 5
+    SHOPEE_KEYWORDS: str = ""
+    SHOPEE_MIN_DISCOUNT: int = 5
 
 
 class BotRunReport(BaseModel):
@@ -174,6 +177,7 @@ async def config_save(request: Request):
         "CHANNEL_PERFUMES_INCLUDE", "CHANNEL_PERFUMES_EXCLUDE",
         "ALIEXPRESS_MAX_OFFERS", "ALIEXPRESS_TRACKING_ID",
         "ALIEXPRESS_CATEGORY_IDS", "ALIEXPRESS_KEYWORDS",
+        "SHOPEE_MAX_OFFERS", "SHOPEE_KEYWORDS", "SHOPEE_MIN_DISCOUNT",
     ]:
         if key in form:
             items[key] = form[key]
