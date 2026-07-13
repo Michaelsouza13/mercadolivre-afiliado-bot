@@ -51,7 +51,7 @@ jobs:
           CHANNEL_PERFUMES_EXCLUDE: ${{ vars.CHANNEL_PERFUMES_EXCLUDE || '' }}
           ALIEXPRESS_APP_KEY: ${{ secrets.ALIEXPRESS_APP_KEY || '' }}
           ALIEXPRESS_APP_SECRET: ${{ secrets.ALIEXPRESS_APP_SECRET || '' }}
-          ALIEXPRESS_TRACKING_ID: ${{ vars.ALIEXPRESS_TRACKING_ID || 'maikapromos' }}
+          ALIEXPRESS_TRACKING_ID: ${{ vars.ALIEXPRESS_TRACKING_ID || '' }}
           ALIEXPRESS_MAX_OFFERS: ${{ vars.ALIEXPRESS_MAX_OFFERS || '5' }}
           ALIEXPRESS_CATEGORY_IDS: ${{ vars.ALIEXPRESS_CATEGORY_IDS || '' }}
           ALIEXPRESS_KEYWORDS: ${{ vars.ALIEXPRESS_KEYWORDS || '' }}
