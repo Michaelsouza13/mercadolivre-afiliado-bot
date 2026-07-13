@@ -73,6 +73,11 @@ DEFAULT_CONFIG = {
     "CACHE_EXPIRY_DAYS": "7",
     "INCLUDE_KEYWORDS": "",
     "EXCLUDE_KEYWORDS": "",
+    "CHANNELS": "",
+    "CHANNEL_PERFUMES_TELEGRAM": "",
+    "CHANNEL_PERFUMES_WHATSAPP": "",
+    "CHANNEL_PERFUMES_INCLUDE": "perfume,colonia,essencia,desodorante,aroma,fragrancia",
+    "CHANNEL_PERFUMES_EXCLUDE": "",
 }
 
 

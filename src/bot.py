@@ -3,6 +3,9 @@ import logging
 import os
 import sys
 import time
+from collections import defaultdict
+from dataclasses import dataclass, field
+from typing import List, Optional
 from urllib.parse import urlencode, urlparse, urlunparse
 
 import requests
@@ -110,6 +113,80 @@ def _matches_keywords(title: str, include: str, exclude: str) -> bool:
     return True
 
 
+@dataclass
+class Channel:
+    name: str
+    telegram_chat_id: str = ""
+    whatsapp_group_jid: str = ""
+    include_keywords: str = ""
+    exclude_keywords: str = ""
+    ml_category: str = ""
+    min_discount: int = 0
+
+
+def parse_channels(dc: Optional[dict] = None) -> List[Channel]:
+    channels_str = ""
+    if dc and dc.get("CHANNELS"):
+        channels_str = dc["CHANNELS"]
+    if not channels_str:
+        channels_str = os.environ.get("CHANNELS", "")
+
+    if not channels_str:
+        return [
+            Channel(
+                name="default",
+                telegram_chat_id=os.environ.get("TELEGRAM_CHAT_ID", ""),
+                whatsapp_group_jid=os.environ.get("ZAP_API_GROUP_JID", ""),
+            )
+        ]
+
+    channels = []
+    for name in [n.strip() for n in channels_str.split(",") if n.strip()]:
+        prefix = f"CHANNEL_{name.upper()}"
+        if dc:
+            telegram = dc.get(f"{prefix}_TELEGRAM", "")
+            whatsapp = dc.get(f"{prefix}_WHATSAPP", "")
+            include = dc.get(f"{prefix}_INCLUDE", "")
+            exclude = dc.get(f"{prefix}_EXCLUDE", "")
+            category = dc.get(f"{prefix}_CATEGORY", "")
+            min_disc = int(dc.get(f"{prefix}_MIN_DISCOUNT", "0"))
+        else:
+            telegram = os.environ.get(f"{prefix}_TELEGRAM", "")
+            whatsapp = os.environ.get(f"{prefix}_WHATSAPP", "")
+            include = os.environ.get(f"{prefix}_INCLUDE", "")
+            exclude = os.environ.get(f"{prefix}_EXCLUDE", "")
+            category = os.environ.get(f"{prefix}_CATEGORY", "")
+            min_disc = int(os.environ.get(f"{prefix}_MIN_DISCOUNT", "0"))
+        channels.append(Channel(
+            name=name, telegram_chat_id=telegram,
+            whatsapp_group_jid=whatsapp,
+            include_keywords=include, exclude_keywords=exclude,
+            ml_category=category, min_discount=min_disc,
+        ))
+
+    has_catch_all = any(not ch.include_keywords for ch in channels)
+    if not has_catch_all:
+        channels.append(Channel(
+            name="geral",
+            telegram_chat_id=os.environ.get("TELEGRAM_CHAT_ID", ""),
+            whatsapp_group_jid=os.environ.get("ZAP_API_GROUP_JID", ""),
+        ))
+
+    return channels
+
+
+def match_channel(offer, channels: List[Channel]) -> Optional[Channel]:
+    for ch in channels:
+        kw = ch.include_keywords
+        ex = ch.exclude_keywords
+        if kw or ex:
+            if _matches_keywords(offer.title, kw, ex):
+                return ch
+            continue
+        return ch
+    return channels[0] if channels else None
+
+
 def main():
     for var in ["TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID"]:
         if var not in os.environ:
@@ -142,18 +219,14 @@ def main():
             logger.info("Config carregada da dashboard")
         dashboard_run_id = _init_dashboard_run(dashboard_url, dashboard_key)
 
-    include_kw = os.environ.get("INCLUDE_KEYWORDS", "")
-    exclude_kw = os.environ.get("EXCLUDE_KEYWORDS", "")
-    if dashboard_url and dc:
-        include_kw = dc.get("INCLUDE_KEYWORDS", include_kw)
-        exclude_kw = dc.get("EXCLUDE_KEYWORDS", exclude_kw)
+    channels = parse_channels(dc if dashboard_url else None)
+    logger.info("Canais configurados: %s", ", ".join(ch.name for ch in channels))
 
     sender_tg = TelegramSender(bot_token)
 
     zap_token = os.environ.get("ZAP_API_TOKEN", "")
     zap_instance = os.environ.get("ZAP_API_INSTANCE_ID", "")
-    zap_group = os.environ.get("ZAP_API_GROUP_JID", "")
-    sender_wp = WhatsAppSender(zap_token, zap_instance) if zap_token and zap_instance and zap_group else None
+    sender_wp = WhatsAppSender(zap_token, zap_instance) if zap_token and zap_instance else None
 
     categories = [c.strip() for c in category.split(",")] if category else [""]
     promo_types = [""] if promotion_type else ["", "lightning"]
@@ -185,15 +258,7 @@ def main():
     if dropped:
         logger.info("Filtradas %d ofertas (preco zero ou desconto < %d%%)", dropped, min_discount)
 
-    if include_kw or exclude_kw:
-        before = len(offers)
-        offers = [o for o in offers if _matches_keywords(o.title, include_kw, exclude_kw)]
-        kw_dropped = before - len(offers)
-        if kw_dropped:
-            logger.info("Filtradas %d ofertas por palavras-chave", kw_dropped)
-
     offers_found = len(all_offers)
-    offers_after_filters = len(offers)
 
     if not offers:
         logger.info("Nenhuma oferta encontrada apos filtros")
@@ -203,68 +268,85 @@ def main():
         return
 
     sent_ids = load_sent_ids()
-    new_offers = [o for o in offers if o.id not in sent_ids]
 
-    if not new_offers:
+    channel_to_offers = defaultdict(list)
+    for offer in offers:
+        ch = match_channel(offer, channels)
+        if ch and offer.id not in sent_ids:
+            channel_to_offers[ch.name].append(offer)
+
+    total_new = sum(len(v) for v in channel_to_offers.values())
+    if total_new == 0:
         logger.info("Nenhuma oferta nova para enviar")
         if dashboard_run_id:
             _report_dashboard_run(dashboard_url, dashboard_key, dashboard_run_id,
                                   "success", offers_found, 0, 0)
         return
 
-    to_send = new_offers[:max_offers]
-    logger.info("Enviando %d de %d ofertas novas (delay %ds entre cada)", len(to_send), len(new_offers), send_delay)
+    logger.info("Enviando ofertas (%d novas no total, delay %ds entre cada)", total_new, send_delay)
 
-    sent_offers_data = []
-    sent_count = 0
-    for i, offer in enumerate(to_send):
-        if i > 0:
-            logger.info("Aguardando %d segundos...", send_delay)
-            time.sleep(send_delay)
-        try:
-            offer.url = make_affiliate_url(offer.clean_url, affiliate_tag)
-        except Exception as e:
-            logger.error("Falha ao gerar URL para '%s': %s", offer.title[:40], e)
+    all_sent_offers_data = []
+    total_sent = 0
+    first = True
+
+    for channel in channels:
+        channel_offers = channel_to_offers.get(channel.name, [])[:max_offers]
+        if not channel_offers:
             continue
 
-        ok_tg = False
-        try:
-            sender_tg.send_offer(chat_id, offer)
-            ok_tg = True
-            logger.info("Telegram: %s", offer.title[:60])
-        except Exception as e:
-            logger.error("Falha no Telegram para '%s': %s", offer.title[:40], e)
+        logger.info("Canal '%s': %d ofertas para enviar", channel.name, len(channel_offers))
 
-        ok_wp = False
-        if sender_wp:
+        for offer in channel_offers:
+            if not first:
+                logger.info("Aguardando %d segundos...", send_delay)
+                time.sleep(send_delay)
+            first = False
+
             try:
-                sender_wp.send_offer(zap_group, offer)
-                ok_wp = True
-                logger.info("WhatsApp: %s", offer.title[:60])
+                offer.url = make_affiliate_url(offer.clean_url, affiliate_tag)
             except Exception as e:
-                logger.error("Falha no WhatsApp para '%s': %s", offer.title[:40], e)
+                logger.error("Falha ao gerar URL para '%s': %s", offer.title[:40], e)
+                continue
 
-        if ok_tg or ok_wp:
-            sent_ids[offer.id] = time.time()
-            sent_count += 1
-            sent_offers_data.append({
-                "product_id": offer.product_id,
-                "title": offer.title,
-                "price": offer.current_price,
-                "discount": offer.discount_label,
-            })
+            ok_tg = False
+            if channel.telegram_chat_id:
+                try:
+                    sender_tg.send_offer(channel.telegram_chat_id, offer)
+                    ok_tg = True
+                    logger.info("[%s] Telegram: %s", channel.name, offer.title[:60])
+                except Exception as e:
+                    logger.error("[%s] Falha no Telegram: %s", channel.name, e)
 
-    if sent_count > 0:
+            ok_wp = False
+            if channel.whatsapp_group_jid and sender_wp:
+                try:
+                    sender_wp.send_offer(channel.whatsapp_group_jid, offer)
+                    ok_wp = True
+                    logger.info("[%s] WhatsApp: %s", channel.name, offer.title[:60])
+                except Exception as e:
+                    logger.error("[%s] Falha no WhatsApp: %s", channel.name, e)
+
+            if ok_tg or ok_wp:
+                sent_ids[offer.id] = time.time()
+                total_sent += 1
+                all_sent_offers_data.append({
+                    "product_id": offer.product_id,
+                    "title": offer.title,
+                    "price": offer.current_price,
+                    "discount": offer.discount_label,
+                })
+
+    if total_sent > 0:
         save_sent_ids(sent_ids)
 
-    logger.info("Concluido. %d oferta(s) enviada(s)", sent_count)
+    logger.info("Concluido. %d oferta(s) enviada(s) no total", total_sent)
 
     if dashboard_run_id:
         _report_dashboard_run(
             dashboard_url, dashboard_key, dashboard_run_id,
-            "success" if sent_count > 0 else "error",
-            offers_found, sent_count, len(new_offers),
-            sent_offers=sent_offers_data,
+            "success" if total_sent > 0 else "error",
+            offers_found, total_sent, total_new,
+            sent_offers=all_sent_offers_data,
         )
 
 

@@ -58,14 +58,55 @@
 
         <div class="form-row">
             <div>
-                <label for="INCLUDE_KEYWORDS">Palavras-chave para incluir</label>
+                <label for="INCLUDE_KEYWORDS">Palavras-chave para incluir (global)</label>
                 <input type="text" id="INCLUDE_KEYWORDS" name="INCLUDE_KEYWORDS" value="{{ config.get('INCLUDE_KEYWORDS', '') }}" placeholder="perfume, cozinha, casa">
-                <span class="text-muted" style="font-size: 0.75rem;">So envia se o titulo tiver pelo menos uma. Deixe vazio para desligar.</span>
+                <span class="text-muted" style="font-size: 0.75rem;">So envia se o titulo tiver pelo menos uma. Deixe vazio para desligar. Usado apenas em modo canal unico.</span>
             </div>
             <div>
-                <label for="EXCLUDE_KEYWORDS">Palavras-chave para excluir</label>
+                <label for="EXCLUDE_KEYWORDS">Palavras-chave para excluir (global)</label>
                 <input type="text" id="EXCLUDE_KEYWORDS" name="EXCLUDE_KEYWORDS" value="{{ config.get('EXCLUDE_KEYWORDS', '') }}" placeholder="generico, similar, usado">
                 <span class="text-muted" style="font-size: 0.75rem;">Exclui ofertas com qualquer uma dessas palavras.</span>
+            </div>
+        </div>
+
+        <hr style="border: none; border-top: 1px solid #334155; margin: 1.5rem 0;">
+
+        <h2>Canais de envio</h2>
+        <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 1rem;">
+            Configure multiplos canais. Cada oferta vai para o primeiro canal que corresponder as palavras-chave.
+            Canais sem palavras-chave sao "catch-all" (recebem o resto).
+        </p>
+
+        <div class="form-row">
+            <div>
+                <label for="CHANNELS">Canais ativos (separados por virgula)</label>
+                <input type="text" id="CHANNELS" name="CHANNELS" value="{{ config.get('CHANNELS', '') }}" placeholder="geral, perfumes">
+                <span class="text-muted" style="font-size: 0.75rem;">Deixe vazio para modo canal unico (comportamento antigo).</span>
+            </div>
+            <div></div>
+        </div>
+
+        <div class="card" style="background: #0f172a; margin-top: 0.5rem;">
+            <h3 style="color: #38bdf8; font-size: 1rem;">Canal: Perfumes</h3>
+            <div class="form-row">
+                <div>
+                    <label for="CHANNEL_PERFUMES_TELEGRAM">Telegram Chat ID</label>
+                    <input type="text" id="CHANNEL_PERFUMES_TELEGRAM" name="CHANNEL_PERFUMES_TELEGRAM" value="{{ config.get('CHANNEL_PERFUMES_TELEGRAM', '') }}" placeholder="-1001234567890">
+                </div>
+                <div>
+                    <label for="CHANNEL_PERFUMES_WHATSAPP">WhatsApp Group JID</label>
+                    <input type="text" id="CHANNEL_PERFUMES_WHATSAPP" name="CHANNEL_PERFUMES_WHATSAPP" value="{{ config.get('CHANNEL_PERFUMES_WHATSAPP', '') }}" placeholder="120363xxxxx@g.us">
+                </div>
+            </div>
+            <div class="form-row">
+                <div>
+                    <label for="CHANNEL_PERFUMES_INCLUDE">Palavras-chave para incluir</label>
+                    <input type="text" id="CHANNEL_PERFUMES_INCLUDE" name="CHANNEL_PERFUMES_INCLUDE" value="{{ config.get('CHANNEL_PERFUMES_INCLUDE', '') }}" placeholder="perfume, colonia, essencia">
+                </div>
+                <div>
+                    <label for="CHANNEL_PERFUMES_EXCLUDE">Palavras-chave para excluir</label>
+                    <input type="text" id="CHANNEL_PERFUMES_EXCLUDE" name="CHANNEL_PERFUMES_EXCLUDE" value="{{ config.get('CHANNEL_PERFUMES_EXCLUDE', '') }}" placeholder="generico, similar">
+                </div>
             </div>
         </div>
 

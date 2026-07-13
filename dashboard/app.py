@@ -85,6 +85,11 @@ class BotConfigResponse(BaseModel):
     CACHE_EXPIRY_DAYS: int = 7
     INCLUDE_KEYWORDS: str = ""
     EXCLUDE_KEYWORDS: str = ""
+    CHANNELS: str = ""
+    CHANNEL_PERFUMES_TELEGRAM: str = ""
+    CHANNEL_PERFUMES_WHATSAPP: str = ""
+    CHANNEL_PERFUMES_INCLUDE: str = ""
+    CHANNEL_PERFUMES_EXCLUDE: str = ""
 
 
 class BotRunReport(BaseModel):
@@ -160,6 +165,9 @@ async def config_save(request: Request):
         "ML_CATEGORY", "ML_PAGES", "MAX_OFFERS_PER_RUN",
         "ML_PROMOTION_TYPE", "MIN_DISCOUNT", "SEND_DELAY_SECONDS",
         "CACHE_EXPIRY_DAYS", "INCLUDE_KEYWORDS", "EXCLUDE_KEYWORDS",
+        "CHANNELS",
+        "CHANNEL_PERFUMES_TELEGRAM", "CHANNEL_PERFUMES_WHATSAPP",
+        "CHANNEL_PERFUMES_INCLUDE", "CHANNEL_PERFUMES_EXCLUDE",
     ]:
         if key in form:
             items[key] = form[key]
