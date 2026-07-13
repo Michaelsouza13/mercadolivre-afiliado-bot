@@ -83,13 +83,14 @@ class AliExpressScraper:
 
         page_size = min(self.max_offers, 50)
         params = {
-            "tracking_id": self.tracking_id,
             "target_currency": self.currency,
             "target_language": self.language,
-            "ship_to_country": self.ship_country,
             "page_no": "1",
             "page_size": str(page_size),
         }
+        # tracking_id propositalmente removido para teste
+        # if self.tracking_id:
+        #     params["tracking_id"] = self.tracking_id
         if self.category_ids:
             params["category_ids"] = self.category_ids
         if self.keywords:
