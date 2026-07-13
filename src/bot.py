@@ -124,6 +124,13 @@ class Channel:
     min_discount: int = 0
 
 
+def _get_channel_value(dc: Optional[dict], key: str, fallback: str) -> str:
+    if dc and key in dc and dc[key]:
+        return dc[key]
+    val = os.environ.get(key, "")
+    return val if val else fallback
+
+
 def parse_channels(dc: Optional[dict] = None) -> List[Channel]:
     channels_str = ""
     if dc and dc.get("CHANNELS"):
@@ -140,32 +147,33 @@ def parse_channels(dc: Optional[dict] = None) -> List[Channel]:
             )
         ]
 
-    channels = []
+    kw_channels = []
+    catch_all_channels = []
     for name in [n.strip() for n in channels_str.split(",") if n.strip()]:
         prefix = f"CHANNEL_{name.upper()}"
-        if dc:
-            telegram = dc.get(f"{prefix}_TELEGRAM", "")
-            whatsapp = dc.get(f"{prefix}_WHATSAPP", "")
-            include = dc.get(f"{prefix}_INCLUDE", "")
-            exclude = dc.get(f"{prefix}_EXCLUDE", "")
-            category = dc.get(f"{prefix}_CATEGORY", "")
-            min_disc = int(dc.get(f"{prefix}_MIN_DISCOUNT", "0"))
-        else:
-            telegram = os.environ.get(f"{prefix}_TELEGRAM", "")
-            whatsapp = os.environ.get(f"{prefix}_WHATSAPP", "")
-            include = os.environ.get(f"{prefix}_INCLUDE", "")
-            exclude = os.environ.get(f"{prefix}_EXCLUDE", "")
-            category = os.environ.get(f"{prefix}_CATEGORY", "")
-            min_disc = int(os.environ.get(f"{prefix}_MIN_DISCOUNT", "0"))
-        channels.append(Channel(
+        include = _get_channel_value(dc, f"{prefix}_INCLUDE", "")
+        exclude = _get_channel_value(dc, f"{prefix}_EXCLUDE", "")
+        telegram = _get_channel_value(dc, f"{prefix}_TELEGRAM",
+                                      os.environ.get("TELEGRAM_CHAT_ID", ""))
+        whatsapp = _get_channel_value(dc, f"{prefix}_WHATSAPP",
+                                      os.environ.get("ZAP_API_GROUP_JID", ""))
+        category = _get_channel_value(dc, f"{prefix}_CATEGORY", "")
+        min_disc_str = _get_channel_value(dc, f"{prefix}_MIN_DISCOUNT", "0")
+        min_disc = int(min_disc_str) if min_disc_str else 0
+        ch = Channel(
             name=name, telegram_chat_id=telegram,
             whatsapp_group_jid=whatsapp,
             include_keywords=include, exclude_keywords=exclude,
             ml_category=category, min_discount=min_disc,
-        ))
+        )
+        if include or exclude:
+            kw_channels.append(ch)
+        else:
+            catch_all_channels.append(ch)
 
-    has_catch_all = any(not ch.include_keywords for ch in channels)
-    if not has_catch_all:
+    channels = kw_channels + catch_all_channels
+
+    if not catch_all_channels and not kw_channels:
         channels.append(Channel(
             name="geral",
             telegram_chat_id=os.environ.get("TELEGRAM_CHAT_ID", ""),
