@@ -58,11 +58,17 @@ class AliExpressScraper:
         payload["sign"] = self._sign(payload)
 
         try:
-            resp = self.session.post(API_URL, data=payload, timeout=self.timeout)
+            resp = self.session.get(API_URL, params=payload, timeout=self.timeout)
             resp.raise_for_status()
-            return resp.json()
+            j = resp.json()
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug("AliExpress raw response: %s", resp.text[:500])
+            return j
         except Exception as e:
             logger.error("AliExpress API error: %s", e)
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug("AliExpress response text: %s",
+                             getattr(e, 'response', None).text[:500] if hasattr(e, 'response') else 'n/a')
             return None
 
     def _parse_price(self, value) -> float:
