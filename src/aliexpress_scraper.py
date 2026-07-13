@@ -117,8 +117,8 @@ class AliExpressScraper:
             return []
 
         resp_result = resp.get("resp_result", {})
-        resp_code = resp_result.get("resp_code", "200")
-        if resp_code != "200":
+        resp_code = resp_result.get("resp_code", 200)
+        if str(resp_code) != "200":
             logger.warning("AliExpress: resp_code=%s resp_msg=%s raw=%s",
                            resp_code, resp_result.get("resp_msg", ""),
                            str(data)[:500])
@@ -135,10 +135,6 @@ class AliExpressScraper:
             logger.info("AliExpress: nenhum produto retornado")
             return []
 
-        logger.info("AliExpress: primeiro produto raw keys=%s full=%s",
-                     list(products[0].keys()) if isinstance(products[0], dict) else "N/A",
-                     str(products[0])[:1500])
-
         for item in products:
             try:
                 product_id = str(item.get("product_id", "") or "")
@@ -150,10 +146,14 @@ class AliExpressScraper:
                     continue
 
                 current_price = self._parse_price(
-                    item.get("app_sale_price") or item.get("sale_price", "0")
+                    item.get("target_app_sale_price")
+                    or item.get("target_sale_price")
+                    or item.get("app_sale_price")
+                    or item.get("sale_price", "0")
                 )
                 old_price = self._parse_price(
-                    item.get("original_price", "0")
+                    item.get("target_original_price")
+                    or item.get("original_price", "0")
                 )
                 if old_price == 0 or old_price <= current_price:
                     old_price = None
