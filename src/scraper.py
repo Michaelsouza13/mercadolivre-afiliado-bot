@@ -124,8 +124,10 @@ class MercadoLivreScraper:
         new_count = 0
         target = target_new if target_new > 0 else max_offers
         page_limit = max(self.pages, max_pages)
+        pages_used = 0
 
         for page in range(1, page_limit + 1):
+            pages_used = page
             if page > 1:
                 time.sleep(1.5)
 
@@ -146,12 +148,14 @@ class MercadoLivreScraper:
 
             new_in_page = 0
             for offer in page_offers:
-                if offer.id not in seen:
-                    seen.add(offer.id)
-                    all_offers.append(offer)
-                    if seen_ids is not None and offer.id not in seen_ids:
-                        new_count += 1
-                        new_in_page += 1
+                if offer.id in seen:
+                    continue
+                seen.add(offer.id)
+                if seen_ids is not None and offer.id in seen_ids:
+                    continue
+                all_offers.append(offer)
+                new_count += 1
+                new_in_page += 1
 
             logger.info("  -> %d ofertas (%d novas) na pagina %d",
                         len(page_offers), new_in_page, page)
@@ -164,10 +168,10 @@ class MercadoLivreScraper:
                 break
 
         if seen_ids is not None:
-            logger.info("Total: %d ofertas (%d novas em %d paginas)",
-                        len(all_offers), new_count, page_limit)
+            logger.info("Total: %d ofertas novas em %d pagina(s)",
+                        len(all_offers), pages_used)
         else:
-            logger.info("Total de %d ofertas em %d pagina(s)", len(all_offers), page_limit)
+            logger.info("Total de %d ofertas em %d pagina(s)", len(all_offers), pages_used)
         return all_offers[:max_offers]
 
     def _extract_from_json(self, html: str) -> List[Offer]:
