@@ -253,7 +253,8 @@ def main():
     promo_types = [""] if promotion_type else ["", "lightning"]
 
     all_offers = []
-    seen_ids = set()
+    sent_ids = load_sent_ids()
+    sent_ids_set = set(sent_ids.keys())
     for ci, cat in enumerate(categories):
         for ptype in promo_types:
             cat_label = cat if cat else "todas"
@@ -263,7 +264,7 @@ def main():
             try:
                 offers = scraper.scrape(
                     max_offers=max_offers,
-                    seen_ids=seen_ids,
+                    seen_ids=sent_ids_set,
                     target_new=max_offers,
                     max_pages=ml_max_pages,
                 )
@@ -271,9 +272,8 @@ def main():
                 logger.error("Erro ao buscar ofertas [%s, %s]: %s", cat_label, pt_label, e)
                 continue
             for o in offers:
-                if o.id not in seen_ids:
-                    seen_ids.add(o.id)
-                    all_offers.append(o)
+                sent_ids_set.add(o.id)
+                all_offers.append(o)
             logger.info("  -> %d ofertas (%s, %s)", len(offers), cat_label, pt_label)
         if ci < len(categories) - 1:
             logger.info("Aguardando 2s antes da proxima categoria...")
@@ -292,8 +292,8 @@ def main():
         try:
             ae_offers = ae_scraper.scrape()
             for o in ae_offers:
-                if o.id not in seen_ids:
-                    seen_ids.add(o.id)
+                if o.id not in sent_ids_set:
+                    sent_ids_set.add(o.id)
                     all_offers.append(o)
             logger.info("  -> %d ofertas do AliExpress", len(ae_offers))
         except Exception as e:
@@ -313,8 +313,6 @@ def main():
             _report_dashboard_run(dashboard_url, dashboard_key, dashboard_run_id,
                                   "success", offers_found, 0, 0)
         return
-
-    sent_ids = load_sent_ids()
 
     channel_to_offers = defaultdict(list)
     for offer in offers:
