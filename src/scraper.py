@@ -115,18 +115,22 @@ class MercadoLivreScraper:
             url += "?" + "&".join(f"{k}={v}" for k, v in params.items())
         return url
 
-    def scrape(self, max_offers: int = 20) -> List[Offer]:
+    def scrape(self, max_offers: int = 20, seen_ids: set = None,
+               target_new: int = 0, max_pages: int = 20) -> List[Offer]:
         import time
 
         seen = set()
         all_offers = []
+        new_count = 0
+        target = target_new if target_new > 0 else max_offers
+        page_limit = max(self.pages, max_pages)
 
-        for page in range(1, self.pages + 1):
+        for page in range(1, page_limit + 1):
             if page > 1:
                 time.sleep(1.5)
 
             url = self._make_url(page)
-            logger.info("Buscando pagina %d/%d...", page, self.pages)
+            logger.info("Buscando pagina %d (max %d)...", page, page_limit)
 
             try:
                 resp = self.session.get(url, timeout=self.timeout)
@@ -140,16 +144,30 @@ class MercadoLivreScraper:
             if not page_offers:
                 page_offers = self._extract_from_html(resp.text)
 
+            new_in_page = 0
             for offer in page_offers:
                 if offer.id not in seen:
                     seen.add(offer.id)
                     all_offers.append(offer)
+                    if seen_ids is not None and offer.id not in seen_ids:
+                        new_count += 1
+                        new_in_page += 1
 
-            logger.info("  -> %d ofertas encontradas nessa pagina", len(page_offers))
+            logger.info("  -> %d ofertas (%d novas) na pagina %d",
+                        len(page_offers), new_in_page, page)
+
             if not page_offers:
                 break
 
-        logger.info("Total de %d ofertas unicas em %d pagina(s)", len(all_offers), self.pages)
+            if seen_ids is not None and new_count >= target:
+                logger.info("Ja temos %d ofertas novas, parando", new_count)
+                break
+
+        if seen_ids is not None:
+            logger.info("Total: %d ofertas (%d novas em %d paginas)",
+                        len(all_offers), new_count, page_limit)
+        else:
+            logger.info("Total de %d ofertas em %d pagina(s)", len(all_offers), page_limit)
         return all_offers[:max_offers]
 
     def _extract_from_json(self, html: str) -> List[Offer]:

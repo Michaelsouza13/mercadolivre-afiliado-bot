@@ -66,6 +66,7 @@ def init_db():
 DEFAULT_CONFIG = {
     "ML_CATEGORY": "",
     "ML_PAGES": "3",
+    "ML_MAX_PAGES": "20",
     "MAX_OFFERS_PER_RUN": "10",
     "ML_PROMOTION_TYPE": "",
     "MIN_DISCOUNT": "0",

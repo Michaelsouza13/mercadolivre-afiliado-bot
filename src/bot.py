@@ -207,6 +207,7 @@ def main():
     affiliate_tag = os.environ.get("AFFILIATE_TAG", "")
     category = os.environ.get("ML_CATEGORY", "")
     pages = int(os.environ.get("ML_PAGES", "3"))
+    ml_max_pages = int(os.environ.get("ML_MAX_PAGES", "20"))
     max_offers = int(os.environ.get("MAX_OFFERS_PER_RUN", "10"))
     promotion_type = os.environ.get("ML_PROMOTION_TYPE", "")
     min_discount = int(os.environ.get("MIN_DISCOUNT", "0"))
@@ -228,6 +229,7 @@ def main():
         if dc:
             category = dc.get("ML_CATEGORY", category)
             pages = int(dc.get("ML_PAGES", pages))
+            ml_max_pages = int(dc.get("ML_MAX_PAGES", str(ml_max_pages)))
             max_offers = int(dc.get("MAX_OFFERS_PER_RUN", max_offers))
             promotion_type = dc.get("ML_PROMOTION_TYPE", promotion_type)
             min_discount = int(dc.get("MIN_DISCOUNT", min_discount))
@@ -259,7 +261,12 @@ def main():
             logger.info("Buscando ofertas [%s, %s]...", cat_label, pt_label)
             scraper = MercadoLivreScraper(category=cat, pages=pages, promotion_type=ptype)
             try:
-                offers = scraper.scrape()
+                offers = scraper.scrape(
+                    max_offers=max_offers,
+                    seen_ids=seen_ids,
+                    target_new=max_offers,
+                    max_pages=ml_max_pages,
+                )
             except Exception as e:
                 logger.error("Erro ao buscar ofertas [%s, %s]: %s", cat_label, pt_label, e)
                 continue

@@ -78,6 +78,7 @@ def login_required(request: Request):
 class BotConfigResponse(BaseModel):
     ML_CATEGORY: str = ""
     ML_PAGES: int = 3
+    ML_MAX_PAGES: int = 20
     MAX_OFFERS_PER_RUN: int = 10
     ML_PROMOTION_TYPE: str = ""
     MIN_DISCOUNT: int = 0
@@ -166,7 +167,7 @@ async def config_save(request: Request):
     form = await request.form()
     items = {}
     for key in [
-        "ML_CATEGORY", "ML_PAGES", "MAX_OFFERS_PER_RUN",
+        "ML_CATEGORY", "ML_PAGES", "ML_MAX_PAGES", "MAX_OFFERS_PER_RUN",
         "ML_PROMOTION_TYPE", "MIN_DISCOUNT", "SEND_DELAY_SECONDS",
         "CACHE_EXPIRY_DAYS", "INCLUDE_KEYWORDS", "EXCLUDE_KEYWORDS",
         "CHANNELS",

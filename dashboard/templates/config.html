@@ -18,8 +18,13 @@
                 <span class="text-muted" style="font-size: 0.75rem;">Deixe vazio para todas. Multiplas separadas por virgula.</span>
             </div>
             <div>
-                <label for="ML_PAGES">Paginas para escanear</label>
+                <label for="ML_PAGES">Paginas iniciais</label>
                 <input type="number" id="ML_PAGES" name="ML_PAGES" value="{{ config.get('ML_PAGES', '3') }}" min="1" max="20">
+            </div>
+            <div>
+                <label for="ML_MAX_PAGES">Maximo de paginas (dinamico)</label>
+                <input type="number" id="ML_MAX_PAGES" name="ML_MAX_PAGES" value="{{ config.get('ML_MAX_PAGES', '20') }}" min="3" max="50">
+                <span class="text-muted" style="font-size: 0.75rem;">Se faltarem ofertas novas, busca ate esse limite.</span>
             </div>
         </div>
 

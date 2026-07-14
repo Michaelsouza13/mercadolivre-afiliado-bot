@@ -37,6 +37,7 @@ jobs:
           AFFILIATE_TAG: ${{ secrets.AFFILIATE_TAG }}
           ML_CATEGORY: ${{ vars.ML_CATEGORY || '' }}
           ML_PAGES: ${{ vars.ML_PAGES || '3' }}
+          ML_MAX_PAGES: ${{ vars.ML_MAX_PAGES || '20' }}
           MAX_OFFERS_PER_RUN: ${{ vars.MAX_OFFERS_PER_RUN || '10' }}
           ML_PROMOTION_TYPE: ${{ vars.ML_PROMOTION_TYPE || '' }}
           MIN_DISCOUNT: ${{ vars.MIN_DISCOUNT || '0' }}
