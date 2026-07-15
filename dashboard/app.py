@@ -7,6 +7,9 @@ from pathlib import Path
 from typing import Optional
 
 import httpx
+from urllib.parse import quote
+
+import httpx
 from fastapi import FastAPI, Form, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -119,6 +122,8 @@ class BotSentOffer(BaseModel):
     title: str
     price: float = 0.0
     discount: str = ""
+    clean_url: str = ""
+    image_url: str = ""
 
 
 # ---- Web routes ----
@@ -237,6 +242,38 @@ async def offers_page(request: Request):
     return render_template("offers.html", request=request, offers=offers)
 
 
+@app.get("/promos")
+async def promos_page(request: Request):
+    login_required(request)
+    offers = get_recent_offers(200)
+    return render_template("promos.html", request=request, offers=offers)
+
+
+@app.post("/api/promos/format")
+async def format_promos(request: Request):
+    login_required(request)
+    data = await request.json()
+    product_ids = data.get("ids", [])
+    offers = get_recent_offers(999)
+    selected = [o for o in offers if o["product_id"] in product_ids]
+    lines = []
+    for o in selected:
+        title = o["title"]
+        price = o["price"]
+        discount = o["discount"] or ""
+        url = o.get("clean_url", "") or ""
+        lines.append(f"\U0001F4CC *{title}*")
+        lines.append(f"\U0001F525 Por: *R$ {float(price):.2f}*")
+        if discount:
+            lines.append(f"\U0001F3AF {discount}")
+        if url:
+            lines.append(f"\U0001F6D2 {url}")
+        lines.append("")
+    text = "\n".join(lines).strip()
+    wa_link = f"https://wa.me/?text={quote(text)}" if text else ""
+    return {"text": text, "wa_link": wa_link}
+
+
 # ---- Bot API ----
 
 
@@ -279,7 +316,8 @@ async def bot_add_log(run_id: int, entry: BotLogEntry):
 
 @app.post("/api/runs/{run_id}/offer")
 async def bot_add_offer(run_id: int, offer: BotSentOffer):
-    add_sent_offer(run_id, offer.product_id, offer.title, offer.price, offer.discount)
+    add_sent_offer(run_id, offer.product_id, offer.title, offer.price, offer.discount,
+                   clean_url=offer.clean_url, image_url=offer.image_url)
     return {"ok": True}
 
 
@@ -302,6 +340,8 @@ async def bot_finish_run(run_id: int, report: BotRunReport):
             offer.get("title", ""),
             float(offer.get("price", 0)),
             offer.get("discount", ""),
+            clean_url=offer.get("clean_url", ""),
+            image_url=offer.get("image_url", ""),
         )
     return {"ok": True}
 

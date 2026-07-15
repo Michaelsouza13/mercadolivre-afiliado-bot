@@ -379,6 +379,8 @@ def main():
                     "title": offer.title,
                     "price": offer.current_price,
                     "discount": offer.discount_label,
+                    "clean_url": offer.clean_url,
+                    "image_url": offer.image_url,
                 })
 
     if total_sent > 0:

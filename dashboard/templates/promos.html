@@ -1,0 +1,244 @@
+{% extends "base.html" %}
+{% block nav_promos %}active{% endblock %}
+{% block title %}Compartilhar Promos — Maika Promos{% endblock %}
+
+{% block content %}
+<style>
+.promo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+  margin-bottom: 5rem;
+}
+.promo-card {
+  background: #1e293b;
+  border: 2px solid #334155;
+  border-radius: 10px;
+  overflow: hidden;
+  transition: border-color 0.15s;
+  position: relative;
+  cursor: pointer;
+  user-select: none;
+}
+.promo-card:hover { border-color: #475569; }
+.promo-card.selected { border-color: #2563eb; }
+.promo-card .check {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  background: #0f172a;
+  border: 2px solid #475569;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  transition: all 0.15s;
+}
+.promo-card.selected .check { background: #2563eb; border-color: #2563eb; }
+.promo-card .check::after {
+  content: "\2713";
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  display: none;
+}
+.promo-card.selected .check::after { display: block; }
+.promo-card .img-wrap {
+  width: 100%;
+  height: 180px;
+  background: #0f172a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.promo-card .img-wrap img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+.promo-card .img-wrap .no-img {
+  color: #475569;
+  font-size: 2rem;
+}
+.promo-card .info {
+  padding: 0.75rem;
+}
+.promo-card .info .title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-bottom: 0.4rem;
+  min-height: 2.4em;
+}
+.promo-card .info .price {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #38bdf8;
+}
+.promo-card .info .discount {
+  display: inline-block;
+  background: #16653433;
+  color: #4ade80;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-top: 0.3rem;
+}
+.action-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #1e293b;
+  border-top: 1px solid #334155;
+  padding: 0.75rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  z-index: 100;
+  flex-wrap: wrap;
+}
+.action-bar .count {
+  color: #94a3b8;
+  font-size: 0.85rem;
+  margin-right: auto;
+}
+.action-bar .btn { white-space: nowrap; }
+.toast {
+  position: fixed;
+  bottom: 5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #166534;
+  color: #4ade80;
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  opacity: 0;
+  transition: opacity 0.3s;
+  z-index: 200;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; }
+@media (max-width: 640px) {
+  .promo-grid { grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+  .promo-card .img-wrap { height: 120px; }
+  .action-bar { padding: 0.5rem 0.75rem; gap: 0.4rem; }
+  .action-bar .btn { font-size: 0.75rem; padding: 0.35rem 0.6rem; }
+}
+</style>
+
+<h1>Compartilhar Promos</h1>
+<p class="text-muted" style="margin-bottom:1rem">Selecione as ofertas e copie o texto ou abra no WhatsApp.</p>
+
+<div class="promo-grid" id="promoGrid">
+  {% for offer in offers %}
+  <div class="promo-card" data-id="{{ offer.product_id }}"
+       data-title="{{ offer.title|e }}"
+       data-price="{{ "%.2f"|format(offer.price|float) }}"
+       data-discount="{{ offer.discount|e }}"
+       data-url="{{ offer.clean_url|e }}"
+       onclick="toggleCard(this)">
+    <div class="check"></div>
+    <div class="img-wrap">
+      {% if offer.image_url %}
+      <img src="{{ offer.image_url }}" alt="" loading="lazy"
+           onerror="this.parentElement.innerHTML='<span class=no-img>\U0001F5BC</span>'">
+      {% else %}
+      <span class="no-img">\U0001F5BC</span>
+      {% endif %}
+    </div>
+    <div class="info">
+      <div class="title">{{ offer.title }}</div>
+      <div class="price">R$ {{ "%.2f"|format(offer.price|float) }}</div>
+      {% if offer.discount %}
+      <span class="discount">{{ offer.discount }}</span>
+      {% endif %}
+    </div>
+  </div>
+  {% else %}
+  <p class="text-muted">Nenhuma oferta encontrada.</p>
+  {% endfor %}
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="action-bar">
+  <span class="count" id="count">0 selecionados</span>
+  <button class="btn btn-outline" onclick="toggleAll()">Selecionar todos</button>
+  <button class="btn btn-primary" onclick="copySelected()">📋 Copiar</button>
+  <button class="btn btn-primary" onclick="openWhatsApp()">📱 WhatsApp</button>
+</div>
+
+<script>
+let allIds = [];
+document.querySelectorAll('.promo-card').forEach(c => allIds.push(c.dataset.id));
+
+function toggleCard(el) {
+  el.classList.toggle('selected');
+  updateCount();
+}
+
+function toggleAll() {
+  const cards = document.querySelectorAll('.promo-card');
+  const someUnselected = Array.from(cards).some(c => !c.classList.contains('selected'));
+  cards.forEach(c => c.classList.toggle('selected', someUnselected));
+  updateCount();
+}
+
+function getSelected() {
+  return Array.from(document.querySelectorAll('.promo-card.selected'));
+}
+
+function updateCount() {
+  const n = getSelected().length;
+  document.getElementById('count').textContent = n + ' selecionado' + (n !== 1 ? 's' : '');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+function formatOffer(o) {
+  const lines = [];
+  lines.push('\U0001F4CC *' + o.dataset.title + '*');
+  lines.push('\U0001F525 Por: *R$ ' + o.dataset.price + '*');
+  if (o.dataset.discount) lines.push('\U0001F3AF ' + o.dataset.discount);
+  if (o.dataset.url) lines.push('\U0001F6D2 ' + o.dataset.url);
+  lines.push('');
+  return lines.join('\n');
+}
+
+async function copySelected() {
+  const selected = getSelected();
+  if (!selected.length) { showToast('Selecione ao menos uma oferta'); return; }
+  const text = selected.map(formatOffer).join('\n');
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast('Copiado! Cole no WhatsApp');
+  } catch {
+    showToast('Erro ao copiar');
+  }
+}
+
+function openWhatsApp() {
+  const selected = getSelected();
+  if (!selected.length) { showToast('Selecione ao menos uma oferta'); return; }
+  const text = selected.map(formatOffer).join('\n');
+  const url = 'https://wa.me/?text=' + encodeURIComponent(text);
+  window.open(url, '_blank');
+}
+</script>
+{% endblock %}

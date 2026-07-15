@@ -47,6 +47,8 @@ def init_db():
                 title       TEXT,
                 price       REAL,
                 discount    TEXT,
+                clean_url   TEXT DEFAULT '',
+                image_url   TEXT DEFAULT '',
                 sent_at     REAL NOT NULL,
                 run_id      INTEGER REFERENCES runs(id)
             );
@@ -61,6 +63,7 @@ def init_db():
         """)
 
         _ensure_default_config(conn)
+        _migrate_schema(conn)
 
 
 DEFAULT_CONFIG = {
@@ -143,11 +146,20 @@ def add_run_log(run_id: int, level: str, message: str):
         )
 
 
-def add_sent_offer(run_id: int, product_id: str, title: str, price: float, discount: str):
+def _migrate_schema(conn):
+    for col in ("clean_url", "image_url"):
+        try:
+            conn.execute(f"ALTER TABLE sent_offers ADD COLUMN {col} TEXT DEFAULT ''")
+        except Exception:
+            pass
+
+
+def add_sent_offer(run_id: int, product_id: str, title: str, price: float, discount: str,
+                   clean_url: str = "", image_url: str = ""):
     with get_conn() as conn:
         conn.execute(
-            "INSERT OR IGNORE INTO sent_offers (product_id, title, price, discount, sent_at, run_id) VALUES (?, ?, ?, ?, ?, ?)",
-            (product_id, title, price, discount, time.time(), run_id),
+            "INSERT OR IGNORE INTO sent_offers (product_id, title, price, discount, clean_url, image_url, sent_at, run_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (product_id, title, price, discount, clean_url, image_url, time.time(), run_id),
         )
 
 
