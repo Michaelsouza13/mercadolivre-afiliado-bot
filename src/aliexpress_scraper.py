@@ -11,7 +11,7 @@ from scraper import Offer
 logger = logging.getLogger(__name__)
 
 API_URL = "https://api-sg.aliexpress.com/sync"
-METHOD_PRODUCT_QUERY = "aliexpress.affiliate.product.query"
+METHOD_HOT_PRODUCT = "aliexpress.affiliate.hotproduct.query"
 
 
 class AliExpressScraper:
@@ -87,6 +87,8 @@ class AliExpressScraper:
             "target_language": self.language,
             "page_no": "1",
             "page_size": str(page_size),
+            "sort": "LAST_VOLUME_DESC",
+            "fields": "product_id,product_title,product_small_image_urls,product_main_image_url,target_app_sale_price,target_sale_price,app_sale_price,sale_price,target_original_price,original_price,discount,promotion_link,product_detail_url",
         }
         if self.tracking_id:
             params["tracking_id"] = self.tracking_id
@@ -97,7 +99,7 @@ class AliExpressScraper:
         if not self.category_ids and not self.keywords:
             params["keywords"] = "fone"
 
-        data = self._call(METHOD_PRODUCT_QUERY, params)
+        data = self._call(METHOD_HOT_PRODUCT, params)
         if not data:
             return []
 
@@ -110,7 +112,8 @@ class AliExpressScraper:
             return []
 
         try:
-            resp = data["aliexpress_affiliate_product_query_response"]
+            resp = (data.get("aliexpress_affiliate_hotproduct_query_response")
+                    or data["aliexpress_affiliate_product_query_response"])
         except KeyError:
             logger.warning("AliExpress: resposta inesperada (chaves: %s)",
                            list(data.keys()))

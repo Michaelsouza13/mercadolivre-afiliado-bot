@@ -146,6 +146,25 @@
             </div>
         </div>
 
+        <hr style="border: none; border-top: 1px solid #334155; margin: 1.5rem 0;">
+
+        <h2>Shopee</h2>
+        <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 1rem;">
+            Configure a integracao com a Shopee. As credenciais (App ID, App Secret) sao configuradas via GitHub Secrets.
+        </p>
+
+        <div class="form-row">
+            <div>
+                <label for="SHOPEE_MAX_OFFERS">Maximo de ofertas por execucao</label>
+                <input type="number" id="SHOPEE_MAX_OFFERS" name="SHOPEE_MAX_OFFERS" value="{{ config.get('SHOPEE_MAX_OFFERS', '5') }}" min="0" max="20">
+            </div>
+            <div>
+                <label for="SHOPEE_KEYWORDS">Palavras-chave para busca</label>
+                <input type="text" id="SHOPEE_KEYWORDS" name="SHOPEE_KEYWORDS" value="{{ config.get('SHOPEE_KEYWORDS', '') }}" placeholder="celular,fone,perfume">
+                <span class="text-muted" style="font-size: 0.75rem;">Separadas por virgula.</span>
+            </div>
+        </div>
+
         <button type="submit" class="btn btn-primary" style="margin-top: 0.5rem;">Salvar configuracao</button>
     </form>
 </div>

@@ -61,4 +61,8 @@ jobs:
           ZAP_API_TOKEN: ${{ secrets.ZAP_API_TOKEN }}
           ZAP_API_INSTANCE_ID: ${{ secrets.ZAP_API_INSTANCE_ID }}
           ZAP_API_GROUP_JID: ${{ secrets.ZAP_API_GROUP_JID }}
+          SHOPEE_APP_ID: ${{ secrets.SHOPEE_APP_ID || '' }}
+          SHOPEE_APP_SECRET: ${{ secrets.SHOPEE_APP_SECRET || '' }}
+          SHOPEE_MAX_OFFERS: ${{ vars.SHOPEE_MAX_OFFERS || '5' }}
+          SHOPEE_KEYWORDS: ${{ vars.SHOPEE_KEYWORDS || '' }}
         run: python src/bot.py
