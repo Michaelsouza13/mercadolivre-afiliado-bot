@@ -389,7 +389,10 @@ def main():
             first = False
 
             try:
-                offer.url = make_affiliate_url(offer.clean_url, affiliate_tag)
+                if offer.product_id.startswith("ML"):
+                    offer.url = make_affiliate_url(offer.clean_url, affiliate_tag)
+                else:
+                    offer.url = offer.clean_url
             except Exception as e:
                 logger.error("Falha ao gerar URL para '%s': %s", offer.title[:40], e)
                 continue
