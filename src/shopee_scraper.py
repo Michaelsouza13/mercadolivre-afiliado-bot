@@ -71,6 +71,7 @@ class ShopeeScraper:
                         itemId
                         productName
                         productLink
+                        offerLink
                         imageUrl
                         priceMin
                         priceMax
@@ -129,7 +130,7 @@ class ShopeeScraper:
                         discount_label = ""
 
                     image_url = node.get("imageUrl", "") or ""
-                    product_url = node.get("productLink", "") or ""
+                    product_url = node.get("offerLink", "") or node.get("productLink", "") or ""
 
                     if product_url:
                         if product_url.startswith("https://") or product_url.startswith("http://"):
