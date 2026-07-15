@@ -152,9 +152,9 @@
     <div class="img-wrap">
       {% if offer.image_url %}
       <img src="{{ offer.image_url }}" alt="" loading="lazy"
-           onerror="this.parentElement.innerHTML='<span class=no-img>\U0001F5BC</span>'">
+           onerror="this.parentElement.innerHTML='<span class=no-img>🖼</span>'">
       {% else %}
-      <span class="no-img">\U0001F5BC</span>
+      <span class="no-img">🖼</span>
       {% endif %}
     </div>
     <div class="info">
@@ -213,10 +213,10 @@ function showToast(msg) {
 
 function formatOffer(o) {
   const lines = [];
-  lines.push('\U0001F4CC *' + o.dataset.title + '*');
-  lines.push('\U0001F525 Por: *R$ ' + o.dataset.price + '*');
-  if (o.dataset.discount) lines.push('\U0001F3AF ' + o.dataset.discount);
-  if (o.dataset.url) lines.push('\U0001F6D2 ' + o.dataset.url);
+  lines.push('📌 *' + o.dataset.title + '*');
+  lines.push('🔥 Por: *R$ ' + o.dataset.price + '*');
+  if (o.dataset.discount) lines.push('🎯 ' + o.dataset.discount);
+  if (o.dataset.url) lines.push('🛒 ' + o.dataset.url);
   lines.push('');
   return lines.join('\n');
 }
