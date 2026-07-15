@@ -197,6 +197,19 @@ def match_channel(offer, channels: List[Channel]) -> Optional[Channel]:
     return channels[0] if channels else None
 
 
+def _interleave_offers(offers: list) -> list:
+    groups = defaultdict(list)
+    for o in offers:
+        prefix = o.product_id[:2]
+        groups[prefix].append(o)
+    result = []
+    while any(groups.values()):
+        for prefix in ["ML", "AE", "SH"]:
+            if groups[prefix]:
+                result.append(groups[prefix].pop(0))
+    return result
+
+
 def main():
     for var in ["TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID"]:
         if var not in os.environ:
@@ -327,6 +340,7 @@ def main():
             logger.error("Erro ao buscar ofertas Shopee: %s", e)
         time.sleep(2)
 
+    all_offers = _interleave_offers(all_offers)
     offers = [o for o in all_offers if o.current_price > 0 and o.discount_percent >= min_discount]
     dropped = len(all_offers) - len(offers)
     if dropped:

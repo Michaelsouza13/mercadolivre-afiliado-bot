@@ -65,25 +65,27 @@ class ShopeeScraper:
                 break
             logger.info("Shopee: buscando '%s'...", kw)
             query = """
-            query($keyword: String!, $limit: Int, $offset: Int) {
-                productOfferV2(keyword: $keyword, limit: $limit, offset: $offset) {
+            query($keyword: String!, $limit: Int, $page: Int) {
+                productOfferV2(keyword: $keyword, limit: $limit, page: $page) {
                     nodes {
-                        productId
+                        itemId
                         productName
+                        productLink
                         imageUrl
-                        price
-                        originalPrice
-                        discount
+                        priceMin
+                        priceMax
+                        priceDiscountRate
                         commissionRate
                         shopId
                     }
+                    pageInfo { page limit hasNextPage }
                 }
             }
             """
             variables = {
                 "keyword": kw,
                 "limit": min(self.max_offers * 2, 50),
-                "offset": 0,
+                "page": 1,
             }
             data = self._call(query, variables)
             if not data:
@@ -99,12 +101,11 @@ class ShopeeScraper:
                 if len(all_products) >= self.max_offers:
                     break
                 try:
-                    product_id = str(node.get("productId", "") or "")
-                    shop_id = str(node.get("shopId", "") or "")
-                    if not product_id:
+                    item_id = str(node.get("itemId", "") or "")
+                    if not item_id:
                         continue
 
-                    full_id = f"SH{product_id}"
+                    full_id = f"SH{item_id}"
                     if full_id in seen_ids:
                         continue
                     seen_ids.add(full_id)
@@ -113,29 +114,33 @@ class ShopeeScraper:
                     if not title:
                         continue
 
-                    raw_price = node.get("price", 0) or 0
-                    raw_original = node.get("originalPrice", 0) or 0
+                    price_min = float(node.get("priceMin", 0) or 0)
+                    price_max = float(node.get("priceMax", 0) or 0)
+                    current_price = price_min if price_min > 0 else price_max
+                    if current_price <= 0:
+                        continue
 
-                    current_price = float(raw_price)
-                    old_price = float(raw_original) if raw_original and raw_original > raw_price else 0.0
-                    if old_price == 0:
+                    discount_rate = float(node.get("priceDiscountRate", 0) or 0)
+                    if discount_rate > 0:
+                        old_price = current_price / (1 - discount_rate / 100)
+                        discount_label = f"{int(discount_rate)}% OFF"
+                    else:
                         old_price = current_price * 1.3
-
-                    discount = node.get("discount", "") or ""
-                    if not discount and old_price > current_price:
-                        pct = int((1 - current_price / old_price) * 100)
-                        discount = f"{pct}% OFF"
+                        discount_label = ""
 
                     image_url = node.get("imageUrl", "") or ""
+                    product_url = node.get("productLink", "") or ""
 
-                    product_url = f"shopee.com.br/product/{shop_id}/{product_id}"
+                    if product_url:
+                        if product_url.startswith("https://") or product_url.startswith("http://"):
+                            product_url = product_url.split("://", 1)[1]
 
                     all_products.append(Offer(
                         title=title,
                         product_id=full_id,
                         current_price=current_price,
                         old_price=old_price,
-                        discount_label=discount,
+                        discount_label=discount_label,
                         image_url=image_url,
                         product_url=product_url,
                     ))
