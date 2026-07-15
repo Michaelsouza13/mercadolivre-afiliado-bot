@@ -1,3 +1,4 @@
+import hashlib
 import logging
 import os
 import time
@@ -5,8 +6,6 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
-
-import httpx
 from urllib.parse import quote
 
 import httpx
@@ -39,7 +38,7 @@ logger = logging.getLogger(__name__)
 DASHBOARD_PASSWORD = os.environ.get("DASHBOARD_PASSWORD", "admin")
 GH_TOKEN = os.environ.get("GH_TOKEN", "")
 GH_REPO = os.environ.get("GH_REPO", "")
-SESSION_TOKEN = ""
+SESSION_TOKEN = hashlib.sha256(DASHBOARD_PASSWORD.encode()).hexdigest()
 
 STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
 os.makedirs(STATIC_DIR, exist_ok=True)
@@ -146,10 +145,7 @@ async def login_page(request: Request):
 
 @app.post("/login")
 async def login(request: Request, password: str = Form(...)):
-    global SESSION_TOKEN
     if password == DASHBOARD_PASSWORD:
-        import secrets
-        SESSION_TOKEN = secrets.token_hex(32)
         resp = RedirectResponse(url="/", status_code=303)
         resp.set_cookie(key="session", value=SESSION_TOKEN, httponly=True, max_age=86400 * 7)
         return resp
