@@ -38,12 +38,14 @@ class ShopeeScraper:
         try:
             resp = requests.post(API_URL, data=payload_body, headers=headers, timeout=self.timeout)
             if not resp.ok:
-                logger.warning("Shopee API error %s: %s", resp.status_code, resp.text[:500])
-                return None
+                msg = f"Shopee API error {resp.status_code}: {resp.text[:300]}"
+                logger.warning(msg)
+                raise RuntimeError(msg)
             j = resp.json()
             if "errors" in j:
-                logger.warning("Shopee GraphQL errors: %s", j["errors"])
-                return None
+                msg = f"Shopee GraphQL: {j['errors']}"
+                logger.warning(msg)
+                raise RuntimeError(msg)
             return j
         except Exception as e:
             logger.error("Shopee API exception: %s", e)

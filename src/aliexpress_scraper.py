@@ -107,9 +107,10 @@ class AliExpressScraper:
 
         if "error_response" in data:
             err = data["error_response"]
-            logger.warning("AliExpress: erro da API: code=%s msg=%s",
-                           err.get("code"), err.get("msg"))
-            return []
+            code = err.get("code", "")
+            msg = err.get("msg", "")
+            logger.warning("AliExpress: erro da API: code=%s msg=%s", code, msg)
+            raise RuntimeError(f"AliExpress: code={code} {msg}")
 
         try:
             resp = (data.get("aliexpress_affiliate_hotproduct_query_response")

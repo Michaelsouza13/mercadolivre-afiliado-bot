@@ -197,6 +197,20 @@ def match_channel(offer, channels: List[Channel]) -> Optional[Channel]:
     return channels[0] if channels else None
 
 
+def _retry_with_backoff(func, max_retries=3, base_delay=10, *args, **kwargs):
+    for attempt in range(max_retries):
+        try:
+            return func(*args, **kwargs)
+        except Exception as e:
+            if attempt == max_retries - 1:
+                raise
+            delay = base_delay * (2 ** attempt)
+            logger.warning("Tentativa %d/%d falhou: %s. Retry em %ds...",
+                           attempt + 1, max_retries, e, delay)
+            time.sleep(delay)
+    return None
+
+
 def _send_error_alert(error_msg: str):
     bot_token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
     chat_id = os.environ.get("TELEGRAM_CHAT_ID", "")
@@ -339,12 +353,13 @@ def main():
             logger.info("Buscando ofertas [%s, %s]...", cat_label, pt_label)
             scraper = MercadoLivreScraper(category=cat, pages=pages, promotion_type=ptype)
             try:
-                offers = scraper.scrape(
+                offers = _retry_with_backoff(
+                    scraper.scrape, max_retries=2, base_delay=5,
                     max_offers=ml_target,
                     seen_ids=sent_ids_set,
                     target_new=ml_target,
                     max_pages=ml_max_pages,
-                )
+                ) or []
             except Exception as e:
                 logger.error("Erro ao buscar ofertas [%s, %s]: %s", cat_label, pt_label, e)
                 continue
@@ -367,7 +382,9 @@ def main():
             keywords=ae_keywords,
         )
         try:
-            ae_offers = ae_scraper.scrape()
+            ae_offers = _retry_with_backoff(ae_scraper.scrape, max_retries=3, base_delay=15)
+            if not ae_offers:
+                ae_offers = []
             for o in ae_offers:
                 if o.id not in sent_ids_set:
                     sent_ids_set.add(o.id)
@@ -386,7 +403,9 @@ def main():
             keywords=sh_keywords,
         )
         try:
-            sh_offers = sh_scraper.scrape()
+            sh_offers = _retry_with_backoff(sh_scraper.scrape, max_retries=3, base_delay=10)
+            if not sh_offers:
+                sh_offers = []
             for o in sh_offers:
                 if o.id not in sent_ids_set:
                     sent_ids_set.add(o.id)
