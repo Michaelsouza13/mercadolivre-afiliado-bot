@@ -11,7 +11,7 @@ from scraper import Offer
 logger = logging.getLogger(__name__)
 
 API_URL = "https://api-sg.aliexpress.com/sync"
-METHOD_HOT_PRODUCT = "aliexpress.affiliate.hotproduct.query"
+METHOD_PRODUCT_QUERY = "aliexpress.affiliate.product.query"
 
 
 class AliExpressScraper:
@@ -87,8 +87,8 @@ class AliExpressScraper:
             "target_language": self.language,
             "page_no": "1",
             "page_size": str(page_size),
-            "sort": "LAST_VOLUME_DESC",
-            "fields": "product_id,product_title,product_small_image_urls,product_main_image_url,target_app_sale_price,target_sale_price,app_sale_price,sale_price,target_original_price,original_price,discount,promotion_link,product_detail_url",
+            "sort": "discountDesc",
+            "fields": "product_id,product_title,product_small_image_urls,product_main_image_url,target_app_sale_price,target_sale_price,app_sale_price,sale_price,target_original_price,original_price,discount,promotion_link,product_detail_url,promo_code_info",
         }
         if self.tracking_id:
             params["tracking_id"] = self.tracking_id
@@ -99,7 +99,7 @@ class AliExpressScraper:
         else:
             params["keywords"] = "fone"
 
-        data = self._call(METHOD_HOT_PRODUCT, params)
+        data = self._call(METHOD_PRODUCT_QUERY, params)
         if not data:
             return []
 
@@ -178,6 +178,10 @@ class AliExpressScraper:
 
                 discount_label = raw_discount
 
+                promo_code_info = item.get("promo_code_info", {}) or {}
+                promo_code = promo_code_info.get("promo_code", "") or ""
+                promo_value = promo_code_info.get("code_value", "") or ""
+
                 img_list = item.get("product_small_image_urls", {})
                 image_url = img_list.get("string", [None])[0] if isinstance(img_list, dict) else item.get("product_main_image_url", "")
 
@@ -195,6 +199,8 @@ class AliExpressScraper:
                     discount_label=discount_label,
                     image_url=image_url,
                     product_url=product_url,
+                    promo_code=promo_code,
+                    promo_value=promo_value,
                 ))
             except Exception as e:
                 logger.debug("AliExpress: erro ao processar item: %s", e)

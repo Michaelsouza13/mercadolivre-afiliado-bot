@@ -14,7 +14,9 @@ class Offer:
                  old_price: Optional[float] = None,
                  discount_label: str = "", image_url: str = "",
                  product_url: str = "",
-                 shipping_tags: Optional[list] = None):
+                 shipping_tags: Optional[list] = None,
+                 promo_code: str = "", promo_value: str = "",
+                 coupon_label: str = ""):
         self.title = title
         self.product_id = product_id
         self.current_price = current_price
@@ -23,6 +25,9 @@ class Offer:
         self.image_url = image_url
         self._product_url = product_url
         self.shipping_tags = shipping_tags or []
+        self.promo_code = promo_code
+        self.promo_value = promo_value
+        self.coupon_label = coupon_label
 
     @property
     def id(self) -> str:
@@ -70,6 +75,9 @@ class Offer:
             "discount_label": self.discount_label,
             "image_url": self.image_url,
             "discount_percent": self.discount_percent,
+            "promo_code": self.promo_code,
+            "promo_value": self.promo_value,
+            "coupon_label": self.coupon_label,
         }
 
 
@@ -214,6 +222,7 @@ class MercadoLivreScraper:
                 old_price = None
                 discount_label = ""
                 shipping_tags = []
+                coupon_label = ""
 
                 for comp in components:
                     ctype = comp.get("type")
@@ -236,6 +245,12 @@ class MercadoLivreScraper:
                         if tags:
                             shipping_tags = tags
 
+                    if ctype == "promotions":
+                        promos = comp.get("promotions", [])
+                        for promo in promos:
+                            if promo.get("type") == "coupon":
+                                coupon_label = promo.get("text", "")
+
                 if not title or not product_id:
                     continue
 
@@ -256,6 +271,7 @@ class MercadoLivreScraper:
                     image_url=image_url,
                     product_url=product_url,
                     shipping_tags=shipping_tags,
+                    coupon_label=coupon_label,
                 ))
             except Exception as e:
                 logger.debug("Error parsing item: %s", e)

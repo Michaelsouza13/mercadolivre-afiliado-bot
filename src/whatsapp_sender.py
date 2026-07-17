@@ -80,6 +80,13 @@ class WhatsAppSender:
         if discount:
             lines.append(f"\U0001F3AF {discount}")
 
+        if offer.promo_code:
+            lines.append(f"\U0001F39F *Cupom:* {offer.promo_code}")
+            if offer.promo_value:
+                lines.append(f"\U0001F4CB {offer.promo_value}")
+        elif offer.coupon_label:
+            lines.append(f"\U0001F39F {offer.coupon_label}")
+
         lines.extend([
             "",
             f"\U0001F6D2 {url}",

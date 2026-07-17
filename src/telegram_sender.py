@@ -76,6 +76,13 @@ class TelegramSender:
         if discount:
             lines.append(f"\U0001F3AF {discount}")
 
+        if offer.promo_code:
+            lines.append(f"\U0001F39F <b>Cupom:</b> {offer.promo_code}")
+            if offer.promo_value:
+                lines.append(f"\U0001F4CB {offer.promo_value}")
+        elif offer.coupon_label:
+            lines.append(f"\U0001F39F {offer.coupon_label}")
+
         if offer.has_full_shipping:
             lines.append("\U0001F69A <b>Frete Gr\u00E1tis FULL</b> - Receba amanh\u00E3!")
         elif offer.has_free_shipping:
