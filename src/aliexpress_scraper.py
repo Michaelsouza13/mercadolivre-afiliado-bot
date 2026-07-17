@@ -87,7 +87,7 @@ class AliExpressScraper:
             "target_language": self.language,
             "page_no": "1",
             "page_size": str(page_size),
-            "sort": "discountDesc",
+            "sort": "LAST_VOLUME_DESC",
             "fields": "product_id,product_title,product_small_image_urls,product_main_image_url,target_app_sale_price,target_sale_price,app_sale_price,sale_price,target_original_price,original_price,discount,promotion_link,product_detail_url,promo_code_info",
         }
         if self.tracking_id:
