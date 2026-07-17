@@ -199,3 +199,48 @@ def get_recent_offers(limit: int = 50) -> list:
             "SELECT * FROM sent_offers ORDER BY sent_at DESC LIMIT ?", (limit,)
         ).fetchall()
     return [dict(r) for r in rows]
+
+
+def get_offers_per_day(days: int = 30) -> list:
+    cutoff = time.time() - days * 86400
+    with get_conn() as conn:
+        rows = conn.execute(
+            """SELECT DATE(sent_at, 'unixepoch') as day, COUNT(*) as count
+               FROM sent_offers WHERE sent_at > ?
+               GROUP BY day ORDER BY day ASC""",
+            (cutoff,),
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def get_offers_by_platform() -> list:
+    with get_conn() as conn:
+        rows = conn.execute(
+            """SELECT
+                 CASE
+                   WHEN product_id LIKE 'ML%' THEN 'Mercado Livre'
+                   WHEN product_id LIKE 'AE%' THEN 'AliExpress'
+                   WHEN product_id LIKE 'SH%' THEN 'Shopee'
+                   ELSE 'Outros'
+                 END as platform,
+                 COUNT(*) as count
+               FROM sent_offers
+               GROUP BY platform ORDER BY count DESC""",
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def get_run_durations(limit: int = 20) -> list:
+    with get_conn() as conn:
+        rows = conn.execute(
+            """SELECT id, started_at, finished_at,
+                      ROUND(finished_at - started_at, 1) as duration,
+                      offers_found, offers_sent, status
+               FROM runs
+               WHERE finished_at IS NOT NULL
+               ORDER BY id DESC LIMIT ?""",
+            (limit,),
+        ).fetchall()
+    result = [dict(r) for r in rows]
+    result.reverse()
+    return result

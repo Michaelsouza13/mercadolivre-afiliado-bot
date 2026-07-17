@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block nav_charts %}active{% endblock %}
+{% block title %}Graficos - Maika Promos{% endblock %}
+{% block content %}
+<h1>Graficos</h1>
+
+<div class="grid">
+    <div class="card stat">
+        <div class="stat-value">{{ total_offers }}</div>
+        <div class="stat-label">Total de ofertas enviadas</div>
+    </div>
+    <div class="card stat">
+        <div class="stat-value">{{ platform_data|length }}</div>
+        <div class="stat-label">Plataformas ativas</div>
+    </div>
+    <div class="card stat">
+        <div class="stat-value">{{ days_data|length }}</div>
+        <div class="stat-label">Dias com ofertas (30d)</div>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Ofertas por dia (ultimos 30 dias)</h2>
+    <canvas id="chartDays" height="100"></canvas>
+</div>
+
+<div class="grid">
+    <div class="card">
+        <h2>Por plataforma</h2>
+        <canvas id="chartPlatform" height="200"></canvas>
+    </div>
+    <div class="card">
+        <h2>Tempo de execucao (s)</h2>
+        <canvas id="chartDuration" height="200"></canvas>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7"></script>
+<script>
+const colors = ['#38bdf8','#4ade80','#f87171','#fbbf24','#a78bfa','#f472b6'];
+
+const daysData = {{ days_data|tojson|safe }};
+new Chart(document.getElementById('chartDays'), {
+    type: 'bar',
+    data: {
+        labels: daysData.map(d => d.day.slice(5)),
+        datasets: [{
+            label: 'Ofertas',
+            data: daysData.map(d => d.count),
+            backgroundColor: '#38bdf880',
+            borderColor: '#38bdf8',
+            borderWidth: 1,
+            borderRadius: 4,
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+            x: { ticks: { color: '#94a3b8', maxRotation: 45 }, grid: { color: '#334155' } },
+            y: { ticks: { color: '#94a3b8' }, grid: { color: '#334155' }, beginAtZero: true }
+        }
+    }
+});
+
+const platData = {{ platform_data|tojson|safe }};
+new Chart(document.getElementById('chartPlatform'), {
+    type: 'doughnut',
+    data: {
+        labels: platData.map(p => p.platform),
+        datasets: [{
+            data: platData.map(p => p.count),
+            backgroundColor: colors.slice(0, platData.length),
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: { color: '#94a3b8', padding: 16, font: { size: 12 } }
+            }
+        }
+    }
+});
+
+const durData = {{ durations|tojson|safe }};
+new Chart(document.getElementById('chartDuration'), {
+    type: 'line',
+    data: {
+        labels: durData.map((d, i) => '#' + d.id),
+        datasets: [{
+            label: 'Duracao (s)',
+            data: durData.map(d => d.duration),
+            borderColor: '#4ade80',
+            backgroundColor: '#4ade8040',
+            fill: true,
+            tension: 0.3,
+            pointRadius: 3,
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: { legend: { labels: { color: '#94a3b8' } } },
+        scales: {
+            x: { ticks: { color: '#94a3b8' }, grid: { color: '#334155' } },
+            y: { ticks: { color: '#94a3b8' }, grid: { color: '#334155' }, beginAtZero: true }
+        }
+    }
+});
+</script>
+{% endblock %}

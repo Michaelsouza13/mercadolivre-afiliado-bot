@@ -21,9 +21,12 @@ from database import (
     create_run,
     finish_run,
     get_all_config,
+    get_offers_by_platform,
+    get_offers_per_day,
     get_recent_offers,
     get_recent_runs,
     get_run_detail,
+    get_run_durations,
     init_db,
     update_config_batch,
 )
@@ -247,6 +250,28 @@ async def promos_page(request: Request):
     login_required(request)
     offers = get_recent_offers(200)
     return render_template("promos.html", request=request, offers=offers)
+
+
+@app.get("/charts")
+async def charts_page(request: Request):
+    login_required(request)
+    days_data = get_offers_per_day(30)
+    platform_data = get_offers_by_platform()
+    durations = get_run_durations(20)
+    total_offers = sum(p["count"] for p in platform_data)
+    return render_template("charts.html", request=request,
+                           days_data=days_data, platform_data=platform_data,
+                           durations=durations, total_offers=total_offers)
+
+
+@app.get("/api/charts")
+async def charts_api(request: Request):
+    login_required(request)
+    return {
+        "days": get_offers_per_day(30),
+        "platforms": get_offers_by_platform(),
+        "durations": get_run_durations(20),
+    }
 
 
 @app.post("/api/promos/format")
