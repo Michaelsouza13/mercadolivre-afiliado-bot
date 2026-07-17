@@ -76,6 +76,22 @@
 
         <hr style="border: none; border-top: 1px solid #334155; margin: 1.5rem 0;">
 
+        <h2>Mercado Livre</h2>
+        <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 1rem;">
+            Configure a coleta do Mercado Livre. Os campos Categoria, Paginas e Tipo de promocao estao na secao acima.
+        </p>
+
+        <div class="form-row">
+            <div>
+                <label for="ML_MAX_OFFERS">Maximo de ofertas por execucao</label>
+                <input type="number" id="ML_MAX_OFFERS" name="ML_MAX_OFFERS" value="{{ config.get('ML_MAX_OFFERS', '') }}" min="0" max="50" placeholder="deixe vazio para usar o limite global">
+                <span class="text-muted" style="font-size: 0.75rem;">Deixe vazio para usar o mesmo valor de "Maximo de ofertas por execucao".</span>
+            </div>
+            <div></div>
+        </div>
+
+        <hr style="border: none; border-top: 1px solid #334155; margin: 1.5rem 0;">
+
         <h2>Canais de envio</h2>
         <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 1rem;">
             Configure multiplos canais. Cada oferta vai para o primeiro canal que corresponder as palavras-chave.

@@ -71,6 +71,7 @@ DEFAULT_CONFIG = {
     "ML_PAGES": "3",
     "ML_MAX_PAGES": "20",
     "MAX_OFFERS_PER_RUN": "10",
+    "ML_MAX_OFFERS": "",
     "ML_PROMOTION_TYPE": "",
     "MIN_DISCOUNT": "3",
     "SEND_DELAY_SECONDS": "60",
@@ -82,11 +83,11 @@ DEFAULT_CONFIG = {
     "CHANNEL_PERFUMES_WHATSAPP": "",
     "CHANNEL_PERFUMES_INCLUDE": "perfume,colonia,essencia,desodorante,gloss,serum,mascara capilar,reparador capilar,hidratante facial,protetor solar,batom,maquiagem,condicionador,shampoo,leave-in,oleo capilar,fragrancia,perfumaria,cosmetico,paleta sombra,delineador,brilho labial",
     "CHANNEL_PERFUMES_EXCLUDE": "",
-    "ALIEXPRESS_MAX_OFFERS": "5",
+    "ALIEXPRESS_MAX_OFFERS": "20",
     "ALIEXPRESS_TRACKING_ID": "",
     "ALIEXPRESS_CATEGORY_IDS": "",
     "ALIEXPRESS_KEYWORDS": "fone bluetooth,smartwatch,projetor portatil,caixa som,teclado mecanico,mouse gamer,power bank,carregador rapido,ssd,memoria ddr5,kindle,fone cancelamento ruido,controle videogame,webcam,cadeira gamer",
-    "SHOPEE_MAX_OFFERS": "5",
+    "SHOPEE_MAX_OFFERS": "20",
     "SHOPEE_KEYWORDS": "fone bluetooth,smartwatch,caixa som,drone,camera seguranca,tapete sala,tapete banheiro,cortina blackout,revestimento ripado,papel parede 3d,quadro decorativo,espelho adnet,painel ripado,manta sofa,ventilador teto,mini aspirador,papa bolinhas,ferro portatil,umidificador,climatizador,passadeira vapor,irrigador dental,creatina,suplemento",
 }
 

@@ -210,6 +210,41 @@ def _interleave_offers(offers: list) -> list:
     return result
 
 
+def _balance_offers(all_offers: list, max_offers: int) -> list:
+    if not all_offers or max_offers <= 0:
+        return []
+
+    quota = max(max_offers // 3, 1)
+
+    groups = defaultdict(list)
+    for o in all_offers:
+        groups[o.product_id[:2]].append(o)
+
+    result = []
+
+    for i in range(quota):
+        for prefix in ["ML", "AE", "SH"]:
+            pool = groups.get(prefix, [])
+            if i < len(pool) and len(result) < max_offers:
+                result.append(pool[i])
+
+    remaining = _interleave_offers(
+        [o for prefix in ["ML", "AE", "SH"]
+         for o in groups.get(prefix, [])[quota:]]
+    )
+    for o in remaining:
+        if len(result) >= max_offers:
+            break
+        result.append(o)
+
+    logger.info("Balanceamento: quota=%d, total=%d, composicao: ML=%d AE=%d SH=%d",
+                quota, len(result),
+                sum(1 for o in result if o.product_id[:2] == "ML"),
+                sum(1 for o in result if o.product_id[:2] == "AE"),
+                sum(1 for o in result if o.product_id[:2] == "SH"))
+    return result
+
+
 def main():
     for var in ["TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID"]:
         if var not in os.environ:
@@ -222,6 +257,7 @@ def main():
     category = os.environ.get("ML_CATEGORY", "")
     pages = int(os.environ.get("ML_PAGES", "3"))
     ml_max_pages = int(os.environ.get("ML_MAX_PAGES", "20"))
+    ml_max_offers = int(os.environ.get("ML_MAX_OFFERS", "0")) or 0
     max_offers = int(os.environ.get("MAX_OFFERS_PER_RUN", "10"))
     promotion_type = os.environ.get("ML_PROMOTION_TYPE", "")
     min_discount = int(os.environ.get("MIN_DISCOUNT", "0"))
@@ -249,6 +285,9 @@ def main():
             category = dc.get("ML_CATEGORY", category)
             pages = int(dc.get("ML_PAGES", pages))
             ml_max_pages = int(dc.get("ML_MAX_PAGES", str(ml_max_pages)))
+            ml_max_offers_str = dc.get("ML_MAX_OFFERS", "")
+            if ml_max_offers_str:
+                ml_max_offers = int(ml_max_offers_str)
             max_offers = int(dc.get("MAX_OFFERS_PER_RUN", max_offers))
             promotion_type = dc.get("ML_PROMOTION_TYPE", promotion_type)
             min_discount = int(dc.get("MIN_DISCOUNT", min_discount))
@@ -261,12 +300,9 @@ def main():
             logger.info("Config carregada da dashboard")
         dashboard_run_id = _init_dashboard_run(dashboard_url, dashboard_key)
 
-    quota = max(max_offers // 3, 1)
-    quota_ml = min(max_offers, quota)
-    quota_ae = min(quota, ae_max_offers)
-    quota_sh = min(quota, sh_max_offers)
-    logger.info("Cotas: ML=%d AE=%d SH=%d (max=%d, quota=%d)",
-                quota_ml, quota_ae, quota_sh, max_offers, quota)
+    ml_target = ml_max_offers if ml_max_offers > 0 else max_offers
+    logger.info("Limite de coleta: ML=%d AE=%d SH=%d (max_offers=%d)",
+                ml_target, ae_max_offers, sh_max_offers, max_offers)
 
     channels = parse_channels(dc if dashboard_url else None)
     logger.info("Canais configurados: %s", ", ".join(ch.name for ch in channels))
@@ -291,9 +327,9 @@ def main():
             scraper = MercadoLivreScraper(category=cat, pages=pages, promotion_type=ptype)
             try:
                 offers = scraper.scrape(
-                    max_offers=max_offers,
+                    max_offers=ml_target,
                     seen_ids=sent_ids_set,
-                    target_new=quota_ml,
+                    target_new=ml_target,
                     max_pages=ml_max_pages,
                 )
             except Exception as e:
@@ -313,7 +349,7 @@ def main():
             app_key=ae_app_key,
             app_secret=ae_app_secret,
             tracking_id=ae_tracking_id,
-            max_offers=quota_ae,
+            max_offers=ae_max_offers,
             category_ids=ae_category_ids,
             keywords=ae_keywords,
         )
@@ -333,7 +369,7 @@ def main():
         sh_scraper = ShopeeScraper(
             app_id=sh_app_id,
             app_secret=sh_app_secret,
-            max_offers=quota_sh,
+            max_offers=sh_max_offers,
             keywords=sh_keywords,
         )
         try:
@@ -347,38 +383,17 @@ def main():
             logger.error("Erro ao buscar ofertas Shopee: %s", e)
         time.sleep(2)
 
-    all_offers = _interleave_offers(all_offers)
-    filtered = []
-    for o in all_offers:
-        src = o.product_id[:2] if len(o.product_id) >= 2 else "??"
-        if src in ("AE", "SH"):
-            if o.current_price <= 0:
-                logger.info("Filtrada [%s]: %s (preco invalido %.2f)", src, o.title[:40], o.current_price)
-                continue
-            filtered.append(o)
-            continue
-        if o.current_price <= 0:
-            continue
-        if o.discount_percent == 0 and not o.discount_label:
-            filtered.append(o)
-        elif o.discount_percent >= min_discount:
-            filtered.append(o)
-        else:
-            logger.debug("Filtrada [%s]: %s (desconto %d%% < %d%%)",
-                         src, o.title[:40], o.discount_percent, min_discount)
-    offers = filtered
-    dropped = len(all_offers) - len(offers)
-    if dropped:
-        logger.info("Filtradas %d ofertas de %d", dropped, len(all_offers))
-
     offers_found = len(all_offers)
+    logger.info("Total coletado: %d ofertas", offers_found)
 
-    if not offers:
-        logger.info("Nenhuma oferta encontrada apos filtros")
+    if not all_offers:
+        logger.info("Nenhuma oferta encontrada")
         if dashboard_run_id:
             _report_dashboard_run(dashboard_url, dashboard_key, dashboard_run_id,
                                   "success", offers_found, 0, 0)
         return
+
+    offers = _balance_offers(all_offers, max_offers)
 
     channel_to_offers = defaultdict(list)
     for offer in offers:
