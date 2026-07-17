@@ -265,7 +265,7 @@ def main():
 
     ae_app_key = os.environ.get("ALIEXPRESS_APP_KEY", "")
     ae_app_secret = os.environ.get("ALIEXPRESS_APP_SECRET", "")
-    ae_tracking_id = os.environ.get("ALIEXPRESS_TRACKING_ID", "")
+    ae_tracking_id = os.environ.get("ALIEXPRESS_TRACKING_ID", "maikapromos")
     ae_max_offers = int(os.environ.get("ALIEXPRESS_MAX_OFFERS", "5"))
     ae_category_ids = os.environ.get("ALIEXPRESS_CATEGORY_IDS", "") or "44,7,509"
     ae_keywords = os.environ.get("ALIEXPRESS_KEYWORDS", "")

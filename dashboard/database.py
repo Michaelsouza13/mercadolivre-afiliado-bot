@@ -84,7 +84,7 @@ DEFAULT_CONFIG = {
     "CHANNEL_PERFUMES_INCLUDE": "perfume,colonia,essencia,desodorante,gloss,serum,mascara capilar,reparador capilar,hidratante facial,protetor solar,batom,maquiagem,condicionador,shampoo,leave-in,oleo capilar,fragrancia,perfumaria,cosmetico,paleta sombra,delineador,brilho labial",
     "CHANNEL_PERFUMES_EXCLUDE": "",
     "ALIEXPRESS_MAX_OFFERS": "20",
-    "ALIEXPRESS_TRACKING_ID": "",
+    "ALIEXPRESS_TRACKING_ID": "maikapromos",
     "ALIEXPRESS_CATEGORY_IDS": "",
     "ALIEXPRESS_KEYWORDS": "fone bluetooth,smartwatch,projetor portatil,caixa som,teclado mecanico,mouse gamer,power bank,carregador rapido,ssd,memoria ddr5,kindle,fone cancelamento ruido,controle videogame,webcam,cadeira gamer",
     "SHOPEE_MAX_OFFERS": "20",
