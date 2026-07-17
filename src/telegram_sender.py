@@ -1,10 +1,19 @@
 import logging
+import random
 
 import requests
 
 from utils import format_price
 
 logger = logging.getLogger(__name__)
+
+CTA_PHRASES = [
+    "Aproveite antes que acabe!",
+    "Corre que \u00E9 oportunidade!",
+    "Oferta por tempo limitado!",
+    "Garanta a sua agora!",
+    "N\u00E3o perca essa chance!",
+]
 
 
 class TelegramSender:
@@ -96,7 +105,7 @@ class TelegramSender:
             "",
             f"\U0001F6D2 <a href='{url}'>Ver Oferta</a>",
             "",
-            "\U0001F4E2 Aproveite antes que acabe!",
+            f"\U0001F4E2 {random.choice(CTA_PHRASES)}",
         ])
 
         return "\n".join(lines)
