@@ -261,6 +261,13 @@ def main():
             logger.info("Config carregada da dashboard")
         dashboard_run_id = _init_dashboard_run(dashboard_url, dashboard_key)
 
+    quota = max(max_offers // 3, 1)
+    quota_ml = min(max_offers, quota)
+    quota_ae = min(quota, ae_max_offers)
+    quota_sh = min(quota, sh_max_offers)
+    logger.info("Cotas: ML=%d AE=%d SH=%d (max=%d, quota=%d)",
+                quota_ml, quota_ae, quota_sh, max_offers, quota)
+
     channels = parse_channels(dc if dashboard_url else None)
     logger.info("Canais configurados: %s", ", ".join(ch.name for ch in channels))
 
@@ -286,7 +293,7 @@ def main():
                 offers = scraper.scrape(
                     max_offers=max_offers,
                     seen_ids=sent_ids_set,
-                    target_new=max_offers,
+                    target_new=quota_ml,
                     max_pages=ml_max_pages,
                 )
             except Exception as e:
@@ -306,7 +313,7 @@ def main():
             app_key=ae_app_key,
             app_secret=ae_app_secret,
             tracking_id=ae_tracking_id,
-            max_offers=ae_max_offers,
+            max_offers=quota_ae,
             category_ids=ae_category_ids,
             keywords=ae_keywords,
         )
@@ -326,7 +333,7 @@ def main():
         sh_scraper = ShopeeScraper(
             app_id=sh_app_id,
             app_secret=sh_app_secret,
-            max_offers=sh_max_offers,
+            max_offers=quota_sh,
             keywords=sh_keywords,
         )
         try:
