@@ -70,7 +70,7 @@ DEFAULT_CONFIG = {
     "ML_CATEGORY": "",
     "ML_PAGES": "3",
     "ML_MAX_PAGES": "20",
-    "MAX_OFFERS_PER_RUN": "10",
+    "MAX_OFFERS_PER_RUN": "21",
     "ML_MAX_OFFERS": "",
     "ML_PROMOTION_TYPE": "",
     "MIN_DISCOUNT": "3",
