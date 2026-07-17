@@ -155,6 +155,10 @@ def _migrate_schema(conn):
             conn.execute(f"ALTER TABLE sent_offers ADD COLUMN {col} TEXT DEFAULT ''")
         except Exception:
             pass
+    conn.execute(
+        "UPDATE config SET value=? WHERE key=? AND value=?",
+        ("21", "MAX_OFFERS_PER_RUN", "10"),
+    )
 
 
 def add_sent_offer(run_id: int, product_id: str, title: str, price: float, discount: str,
