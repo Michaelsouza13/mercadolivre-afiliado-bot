@@ -72,7 +72,7 @@ DEFAULT_CONFIG = {
     "ML_MAX_PAGES": "20",
     "MAX_OFFERS_PER_RUN": "10",
     "ML_PROMOTION_TYPE": "",
-    "MIN_DISCOUNT": "0",
+    "MIN_DISCOUNT": "3",
     "SEND_DELAY_SECONDS": "60",
     "CACHE_EXPIRY_DAYS": "7",
     "INCLUDE_KEYWORDS": "",

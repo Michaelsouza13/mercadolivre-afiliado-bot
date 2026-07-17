@@ -254,7 +254,7 @@ def main():
             min_discount = int(dc.get("MIN_DISCOUNT", min_discount))
             send_delay = int(dc.get("SEND_DELAY_SECONDS", send_delay))
             ae_max_offers = int(dc.get("ALIEXPRESS_MAX_OFFERS", str(ae_max_offers)))
-            ae_category_ids = dc.get("ALIEXPRESS_CATEGORY_IDS", ae_category_ids)
+            ae_category_ids = dc.get("ALIEXPRESS_CATEGORY_IDS") or ae_category_ids
             ae_keywords = dc.get("ALIEXPRESS_KEYWORDS", "") or ae_keywords
             sh_max_offers = int(dc.get("SHOPEE_MAX_OFFERS", str(sh_max_offers)))
             sh_keywords = dc.get("SHOPEE_KEYWORDS", sh_keywords)
@@ -346,7 +346,9 @@ def main():
         if o.current_price <= 0:
             continue
         src = o.product_id[:2] if len(o.product_id) >= 2 else "??"
-        if o.discount_percent == 0 and not o.discount_label:
+        if src in ("AE", "SH"):
+            filtered.append(o)
+        elif o.discount_percent == 0 and not o.discount_label:
             filtered.append(o)
         elif o.discount_percent >= min_discount:
             filtered.append(o)
