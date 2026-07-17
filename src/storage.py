@@ -6,7 +6,7 @@ logger = logging.getLogger(__name__)
 
 CACHE_DIR = Path(__file__).resolve().parent.parent / "cache"
 CACHE_FILE = CACHE_DIR / "sent_offers.json"
-MAX_CACHE_SIZE = 5000
+MAX_CACHE_SIZE = 2000
 
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
