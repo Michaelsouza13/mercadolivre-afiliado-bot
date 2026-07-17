@@ -197,6 +197,20 @@ def match_channel(offer, channels: List[Channel]) -> Optional[Channel]:
     return channels[0] if channels else None
 
 
+def _send_error_alert(error_msg: str):
+    bot_token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+    chat_id = os.environ.get("TELEGRAM_CHAT_ID", "")
+    if bot_token and chat_id:
+        try:
+            sender = TelegramSender(bot_token)
+            sender.send_message(
+                chat_id,
+                f"\U0001F6A8 *Maika Promos \u2014 Bot falhou*\n\nErro: `{error_msg}`",
+            )
+        except Exception as e:
+            logger.error("Falha ao enviar alerta de erro no Telegram: %s", e)
+
+
 def _interleave_offers(offers: list) -> list:
     groups = defaultdict(list)
     for o in offers:
@@ -308,7 +322,6 @@ def main():
     logger.info("Canais configurados: %s", ", ".join(ch.name for ch in channels))
 
     sender_tg = TelegramSender(bot_token)
-
     zap_token = os.environ.get("ZAP_API_TOKEN", "")
     zap_instance = os.environ.get("ZAP_API_INSTANCE_ID", "")
     sender_wp = WhatsAppSender(zap_token, zap_instance) if zap_token and zap_instance else None
@@ -485,4 +498,9 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        logger.critical("Bot falhou: %s", e, exc_info=True)
+        _send_error_alert(str(e))
+        sys.exit(1)
