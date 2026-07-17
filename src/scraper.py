@@ -16,7 +16,9 @@ class Offer:
                  product_url: str = "",
                  shipping_tags: Optional[list] = None,
                  promo_code: str = "", promo_value: str = "",
-                 coupon_label: str = ""):
+                 coupon_label: str = "",
+                 installments_qty: int = 0,
+                 installment_value: float = 0.0):
         self.title = title
         self.product_id = product_id
         self.current_price = current_price
@@ -28,6 +30,8 @@ class Offer:
         self.promo_code = promo_code
         self.promo_value = promo_value
         self.coupon_label = coupon_label
+        self.installments_qty = installments_qty
+        self.installment_value = installment_value
 
     @property
     def id(self) -> str:
@@ -78,6 +82,8 @@ class Offer:
             "promo_code": self.promo_code,
             "promo_value": self.promo_value,
             "coupon_label": self.coupon_label,
+            "installments_qty": self.installments_qty,
+            "installment_value": self.installment_value,
         }
 
 
@@ -239,6 +245,9 @@ class MercadoLivreScraper:
                             old_price = previous["value"]
                         discount = price_data.get("discount_label", {})
                         discount_label = discount.get("text", "")
+                        inst = price_data.get("installments", {})
+                        installments_qty = int(inst.get("quantity", 0) or 0)
+                        installment_value = float(inst.get("amount", 0.0) or 0.0)
 
                     if ctype in ("shipping", "shipping_v2"):
                         tags = comp.get("shipping", {}).get("tags", [])
@@ -268,6 +277,8 @@ class MercadoLivreScraper:
                     current_price=current_price,
                     old_price=old_price,
                     discount_label=discount_label,
+                    installments_qty=installments_qty,
+                    installment_value=installment_value,
                     image_url=image_url,
                     product_url=product_url,
                     shipping_tags=shipping_tags,

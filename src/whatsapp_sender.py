@@ -80,6 +80,10 @@ class WhatsAppSender:
         if discount:
             lines.append(f"\U0001F3AF {discount}")
 
+        if offer.installments_qty > 1 and offer.installment_value > 0:
+            iv = format_price(offer.installment_value)
+            lines.append(f"\U0001F4B3 {offer.installments_qty}x de {iv} sem juros")
+
         if offer.promo_code:
             lines.append(f"\U0001F39F *Cupom:* {offer.promo_code}")
             if offer.promo_value:
