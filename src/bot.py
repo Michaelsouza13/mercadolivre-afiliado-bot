@@ -350,12 +350,16 @@ def main():
     all_offers = _interleave_offers(all_offers)
     filtered = []
     for o in all_offers:
-        if o.current_price <= 0:
-            continue
         src = o.product_id[:2] if len(o.product_id) >= 2 else "??"
         if src in ("AE", "SH"):
+            if o.current_price <= 0:
+                logger.info("Filtrada [%s]: %s (preco invalido %.2f)", src, o.title[:40], o.current_price)
+                continue
             filtered.append(o)
-        elif o.discount_percent == 0 and not o.discount_label:
+            continue
+        if o.current_price <= 0:
+            continue
+        if o.discount_percent == 0 and not o.discount_label:
             filtered.append(o)
         elif o.discount_percent >= min_discount:
             filtered.append(o)
@@ -365,7 +369,7 @@ def main():
     offers = filtered
     dropped = len(all_offers) - len(offers)
     if dropped:
-        logger.info("Filtradas %d ofertas de %d (desconto baixo ou preco zero)", dropped, len(all_offers))
+        logger.info("Filtradas %d ofertas de %d", dropped, len(all_offers))
 
     offers_found = len(all_offers)
 
