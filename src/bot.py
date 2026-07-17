@@ -4,6 +4,7 @@ import os
 import sys
 import time
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from typing import List, Optional
 from urllib.parse import urlencode, urlparse, urlunparse
@@ -273,6 +274,80 @@ def _balance_offers(all_offers: list, max_offers: int) -> list:
     return result
 
 
+def _scrape_ml_task(category, pages, ml_max_pages, ml_target, promotion_type, seen):
+    categories = [c.strip() for c in category.split(",")] if category else [""]
+    promo_types = [""] if promotion_type else ["", "lightning"]
+    offers = []
+    for ci, cat in enumerate(categories):
+        for ptype in promo_types:
+            cat_label = cat if cat else "todas"
+            pt_label = f"promotion_type={ptype}" if ptype else "todas"
+            logger.info("ML [%s, %s]...", cat_label, pt_label)
+            scraper = MercadoLivreScraper(category=cat, pages=pages, promotion_type=ptype)
+            try:
+                result = _retry_with_backoff(
+                    scraper.scrape, max_retries=2, base_delay=5,
+                    max_offers=ml_target, seen_ids=seen,
+                    target_new=ml_target, max_pages=ml_max_pages,
+                ) or []
+            except Exception as e:
+                logger.error("Erro ML [%s, %s]: %s", cat_label, pt_label, e)
+                continue
+            for o in result:
+                if o.id not in seen:
+                    seen.add(o.id)
+                    offers.append(o)
+            logger.info("  -> %d ofertas ML (%s, %s)", len(result), cat_label, pt_label)
+        if ci < len(categories) - 1:
+            time.sleep(2)
+    return offers
+
+
+def _scrape_ae_task(app_key, app_secret, tracking_id, max_offers, category_ids, keywords, seen):
+    if not app_key or not app_secret:
+        return []
+    logger.info("AliExpress...")
+    scraper = AliExpressScraper(
+        app_key=app_key, app_secret=app_secret,
+        tracking_id=tracking_id, max_offers=max_offers,
+        category_ids=category_ids, keywords=keywords,
+    )
+    try:
+        result = _retry_with_backoff(scraper.scrape, max_retries=3, base_delay=15) or []
+    except Exception as e:
+        logger.error("Erro AliExpress: %s", e)
+        return []
+    new = []
+    for o in result:
+        if o.id not in seen:
+            seen.add(o.id)
+            new.append(o)
+    logger.info("  -> %d ofertas AliExpress (%d novas)", len(result), len(new))
+    return new
+
+
+def _scrape_sh_task(app_id, app_secret, max_offers, keywords, seen):
+    if not app_id or not app_secret:
+        return []
+    logger.info("Shopee...")
+    scraper = ShopeeScraper(
+        app_id=app_id, app_secret=app_secret,
+        max_offers=max_offers, keywords=keywords,
+    )
+    try:
+        result = _retry_with_backoff(scraper.scrape, max_retries=3, base_delay=10) or []
+    except Exception as e:
+        logger.error("Erro Shopee: %s", e)
+        return []
+    new = []
+    for o in result:
+        if o.id not in seen:
+            seen.add(o.id)
+            new.append(o)
+    logger.info("  -> %d ofertas Shopee (%d novas)", len(result), len(new))
+    return new
+
+
 def main():
     for var in ["TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID"]:
         if var not in os.environ:
@@ -346,74 +421,36 @@ def main():
     all_offers = []
     sent_ids = load_sent_ids()
     sent_ids_set = set(sent_ids.keys())
-    for ci, cat in enumerate(categories):
-        for ptype in promo_types:
-            cat_label = cat if cat else "todas"
-            pt_label = f"promotion_type={ptype}" if ptype else "todas"
-            logger.info("Buscando ofertas [%s, %s]...", cat_label, pt_label)
-            scraper = MercadoLivreScraper(category=cat, pages=pages, promotion_type=ptype)
+
+    logger.info("Iniciando scraping paralelo (ML, AE, SH)...")
+    t0 = time.time()
+
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        futures = {
+            executor.submit(
+                _scrape_ml_task, category, pages, ml_max_pages, ml_target, promotion_type, sent_ids_set.copy()
+            ): "ML",
+            executor.submit(
+                _scrape_ae_task, ae_app_key, ae_app_secret, ae_tracking_id, ae_max_offers, ae_category_ids, ae_keywords, sent_ids_set.copy()
+            ): "AE",
+            executor.submit(
+                _scrape_sh_task, sh_app_id, sh_app_secret, sh_max_offers, sh_keywords, sent_ids_set.copy()
+            ): "SH",
+        }
+
+        for future in as_completed(futures):
+            name = futures[future]
             try:
-                offers = _retry_with_backoff(
-                    scraper.scrape, max_retries=2, base_delay=5,
-                    max_offers=ml_target,
-                    seen_ids=sent_ids_set,
-                    target_new=ml_target,
-                    max_pages=ml_max_pages,
-                ) or []
+                result = future.result()
+                for o in result:
+                    if o.id not in sent_ids_set:
+                        sent_ids_set.add(o.id)
+                        all_offers.append(o)
+                logger.info("Thread %s concluida: %d ofertas novas", name, len(result))
             except Exception as e:
-                logger.error("Erro ao buscar ofertas [%s, %s]: %s", cat_label, pt_label, e)
-                continue
-            for o in offers:
-                sent_ids_set.add(o.id)
-                all_offers.append(o)
-            logger.info("  -> %d ofertas (%s, %s)", len(offers), cat_label, pt_label)
-        if ci < len(categories) - 1:
-            logger.info("Aguardando 2s antes da proxima categoria...")
-            time.sleep(2)
+                logger.error("Thread %s falhou: %s", name, e)
 
-    if ae_app_key and ae_app_secret:
-        logger.info("Buscando ofertas do AliExpress...")
-        ae_scraper = AliExpressScraper(
-            app_key=ae_app_key,
-            app_secret=ae_app_secret,
-            tracking_id=ae_tracking_id,
-            max_offers=ae_max_offers,
-            category_ids=ae_category_ids,
-            keywords=ae_keywords,
-        )
-        try:
-            ae_offers = _retry_with_backoff(ae_scraper.scrape, max_retries=3, base_delay=15)
-            if not ae_offers:
-                ae_offers = []
-            for o in ae_offers:
-                if o.id not in sent_ids_set:
-                    sent_ids_set.add(o.id)
-                    all_offers.append(o)
-            logger.info("  -> %d ofertas do AliExpress", len(ae_offers))
-        except Exception as e:
-            logger.error("Erro ao buscar ofertas AliExpress: %s", e)
-        time.sleep(2)
-
-    if sh_app_id and sh_app_secret:
-        logger.info("Buscando ofertas da Shopee...")
-        sh_scraper = ShopeeScraper(
-            app_id=sh_app_id,
-            app_secret=sh_app_secret,
-            max_offers=sh_max_offers,
-            keywords=sh_keywords,
-        )
-        try:
-            sh_offers = _retry_with_backoff(sh_scraper.scrape, max_retries=3, base_delay=10)
-            if not sh_offers:
-                sh_offers = []
-            for o in sh_offers:
-                if o.id not in sent_ids_set:
-                    sent_ids_set.add(o.id)
-                    all_offers.append(o)
-            logger.info("  -> %d ofertas da Shopee", len(sh_offers))
-        except Exception as e:
-            logger.error("Erro ao buscar ofertas Shopee: %s", e)
-        time.sleep(2)
+    logger.info("Scraping paralelo concluido em %.1fs: %d ofertas", time.time() - t0, len(all_offers))
 
     offers_found = len(all_offers)
     logger.info("Total coletado: %d ofertas", offers_found)
