@@ -44,6 +44,16 @@ class Offer:
         return 0
 
     @property
+    def source(self) -> str:
+        if self.product_id.startswith("ML"):
+            return "Mercado Livre"
+        elif self.product_id.startswith("AE"):
+            return "AliExpress"
+        elif self.product_id.startswith("SH"):
+            return "Shopee"
+        return "Oferta"
+
+    @property
     def has_full_shipping(self) -> bool:
         return "fulfillment" in self.shipping_tags
 

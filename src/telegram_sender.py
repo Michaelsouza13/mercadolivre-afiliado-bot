@@ -62,8 +62,9 @@ class TelegramSender:
         discount = offer.discount_label.strip() if offer.discount_label else ""
         url = offer.url.strip()
 
+        platform = offer.source.upper()
         lines = [
-            "\U0001F525 <b>PROMO\u00E7\u00C3O DO MERCADO LIVRE</b> \U0001F525",
+            f"\U0001F525 <b>PROMO\u00E7\u00C3O {platform}</b> \U0001F525",
             "",
             f"\U0001F4CC <b>{title}</b>",
         ]

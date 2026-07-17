@@ -94,9 +94,9 @@ class AliExpressScraper:
             params["tracking_id"] = self.tracking_id
         if self.category_ids:
             params["category_ids"] = self.category_ids
-        if self.keywords:
+        elif self.keywords:
             params["keywords"] = self.keywords
-        if not self.category_ids and not self.keywords:
+        else:
             params["keywords"] = "fone"
 
         data = self._call(METHOD_HOT_PRODUCT, params)
@@ -148,12 +148,27 @@ class AliExpressScraper:
                 if not title:
                     continue
 
+                raw_prices = {
+                    "target_app_sale_price": item.get("target_app_sale_price"),
+                    "target_sale_price": item.get("target_sale_price"),
+                    "app_sale_price": item.get("app_sale_price"),
+                    "sale_price": item.get("sale_price"),
+                }
+                logger.debug("AE raw price fields for '%s': %s", title[:40], raw_prices)
+
                 current_price = self._parse_price(
                     item.get("target_app_sale_price")
                     or item.get("target_sale_price")
                     or item.get("app_sale_price")
                     or item.get("sale_price", "0")
                 )
+                raw_old = {
+                    "target_original_price": item.get("target_original_price"),
+                    "original_price": item.get("original_price"),
+                }
+                raw_discount = item.get("discount", "")
+                logger.debug("AE old_price fields: %s | discount=%s", raw_old, raw_discount)
+
                 old_price = self._parse_price(
                     item.get("target_original_price")
                     or item.get("original_price", "0")
@@ -161,7 +176,7 @@ class AliExpressScraper:
                 if old_price == 0 or old_price <= current_price:
                     old_price = None
 
-                discount_label = item.get("discount", "")
+                discount_label = raw_discount
 
                 img_list = item.get("product_small_image_urls", {})
                 image_url = img_list.get("string", [None])[0] if isinstance(img_list, dict) else item.get("product_main_image_url", "")

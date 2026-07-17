@@ -66,8 +66,9 @@ class WhatsAppSender:
         discount = offer.discount_label.strip() if offer.discount_label else ""
         url = offer.url.strip()
 
+        platform = offer.source.upper()
         lines = [
-            "\U0001F525 *PROMOÇÃO DO MERCADO LIVRE* \U0001F525",
+            f"\U0001F525 *PROMOÇÃO {platform}* \U0001F525",
             "",
             f"\U0001F4CC *{title}*",
         ]

@@ -85,9 +85,9 @@ DEFAULT_CONFIG = {
     "ALIEXPRESS_MAX_OFFERS": "5",
     "ALIEXPRESS_TRACKING_ID": "",
     "ALIEXPRESS_CATEGORY_IDS": "",
-    "ALIEXPRESS_KEYWORDS": "",
+    "ALIEXPRESS_KEYWORDS": "fone bluetooth,smartwatch,projetor portatil,caixa som,teclado mecanico,mouse gamer,power bank,carregador rapido,ssd,memoria ddr5,kindle,fone cancelamento ruido,controle videogame,webcam,cadeira gamer",
     "SHOPEE_MAX_OFFERS": "5",
-    "SHOPEE_KEYWORDS": "",
+    "SHOPEE_KEYWORDS": "fone bluetooth,smartwatch,caixa som,drone,camera seguranca,tapete sala,tapete banheiro,cortina blackout,revestimento ripado,papel parede 3d,quadro decorativo,espelho adnet,painel ripado,manta sofa,ventilador teto,mini aspirador,papa bolinhas,ferro portatil,umidificador,climatizador,passadeira vapor,irrigador dental,creatina,suplemento",
 }
 
 

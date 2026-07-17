@@ -231,13 +231,13 @@ def main():
     ae_app_secret = os.environ.get("ALIEXPRESS_APP_SECRET", "")
     ae_tracking_id = os.environ.get("ALIEXPRESS_TRACKING_ID", "")
     ae_max_offers = int(os.environ.get("ALIEXPRESS_MAX_OFFERS", "5"))
-    ae_category_ids = os.environ.get("ALIEXPRESS_CATEGORY_IDS", "")
+    ae_category_ids = os.environ.get("ALIEXPRESS_CATEGORY_IDS", "") or "44,7,509"
     ae_keywords = os.environ.get("ALIEXPRESS_KEYWORDS", "")
 
     sh_app_id = os.environ.get("SHOPEE_APP_ID", "")
     sh_app_secret = os.environ.get("SHOPEE_APP_SECRET", "")
     sh_max_offers = int(os.environ.get("SHOPEE_MAX_OFFERS", "5"))
-    sh_keywords = os.environ.get("SHOPEE_KEYWORDS", "")
+    sh_keywords = os.environ.get("SHOPEE_KEYWORDS", "") or "fone bluetooth,smartwatch,caixa som,drone,camera seguranca,tapete sala,tapete banheiro,cortina blackout,revestimento ripado,papel parede 3d,quadro decorativo,espelho adnet,painel ripado,manta sofa,ventilador teto,mini aspirador,papa bolinhas,ferro portatil,umidificador,climatizador,passadeira vapor,irrigador dental,creatina,suplemento"
 
     dashboard_url = os.environ.get("DASHBOARD_URL", "")
     dashboard_key = os.environ.get("BOT_API_KEY", "")
@@ -255,7 +255,7 @@ def main():
             send_delay = int(dc.get("SEND_DELAY_SECONDS", send_delay))
             ae_max_offers = int(dc.get("ALIEXPRESS_MAX_OFFERS", str(ae_max_offers)))
             ae_category_ids = dc.get("ALIEXPRESS_CATEGORY_IDS", ae_category_ids)
-            ae_keywords = dc.get("ALIEXPRESS_KEYWORDS", ae_keywords)
+            ae_keywords = dc.get("ALIEXPRESS_KEYWORDS", "") or ae_keywords
             sh_max_offers = int(dc.get("SHOPEE_MAX_OFFERS", str(sh_max_offers)))
             sh_keywords = dc.get("SHOPEE_KEYWORDS", sh_keywords)
             logger.info("Config carregada da dashboard")
@@ -341,10 +341,22 @@ def main():
         time.sleep(2)
 
     all_offers = _interleave_offers(all_offers)
-    offers = [o for o in all_offers if o.current_price > 0 and o.discount_percent >= min_discount]
+    filtered = []
+    for o in all_offers:
+        if o.current_price <= 0:
+            continue
+        src = o.product_id[:2] if len(o.product_id) >= 2 else "??"
+        if o.discount_percent == 0 and not o.discount_label:
+            filtered.append(o)
+        elif o.discount_percent >= min_discount:
+            filtered.append(o)
+        else:
+            logger.debug("Filtrada [%s]: %s (desconto %d%% < %d%%)",
+                         src, o.title[:40], o.discount_percent, min_discount)
+    offers = filtered
     dropped = len(all_offers) - len(offers)
     if dropped:
-        logger.info("Filtradas %d ofertas (preco zero ou desconto < %d%%)", dropped, min_discount)
+        logger.info("Filtradas %d ofertas de %d (desconto baixo ou preco zero)", dropped, len(all_offers))
 
     offers_found = len(all_offers)
 
@@ -380,7 +392,9 @@ def main():
         if not channel_offers:
             continue
 
-        logger.info("Canal '%s': %d ofertas para enviar", channel.name, len(channel_offers))
+        sources = [o.product_id[:2] for o in channel_offers if len(o.product_id) >= 2]
+        logger.info("Canal '%s': %d ofertas para enviar [%s]",
+                     channel.name, len(channel_offers), ",".join(sources))
 
         for offer in channel_offers:
             if not first:
@@ -402,7 +416,8 @@ def main():
                 try:
                     sender_tg.send_offer(channel.telegram_chat_id, offer)
                     ok_tg = True
-                    logger.info("[%s] Telegram: %s", channel.name, offer.title[:60])
+                    src = offer.product_id[:2] if len(offer.product_id) >= 2 else "??"
+                    logger.info("[%s][%s] Telegram: %s", channel.name, src, offer.title[:60])
                 except Exception as e:
                     logger.error("[%s] Falha no Telegram: %s", channel.name, e)
 
