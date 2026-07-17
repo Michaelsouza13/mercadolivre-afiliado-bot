@@ -433,9 +433,11 @@ def main():
         if not channel_offers:
             continue
 
+        channel_offers.sort(key=lambda o: o.score, reverse=True)
         sources = [o.product_id[:2] for o in channel_offers if len(o.product_id) >= 2]
-        logger.info("Canal '%s': %d ofertas para enviar [%s]",
-                     channel.name, len(channel_offers), ",".join(sources))
+        logger.info("Canal '%s': %d ofertas para enviar [%s] (melhor score=%.0f)",
+                     channel.name, len(channel_offers), ",".join(sources),
+                     channel_offers[0].score if channel_offers else 0)
 
         for offer in channel_offers:
             if not first:

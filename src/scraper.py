@@ -70,6 +70,19 @@ class Offer:
     def has_free_shipping(self) -> bool:
         return "free_shipping" in self.shipping_tags or self.has_full_shipping
 
+    @property
+    def score(self) -> float:
+        s = self.discount_percent * 1.0
+        if self.promo_code or self.coupon_label:
+            s += 15
+        if self.has_full_shipping:
+            s += 15
+        elif self.has_free_shipping:
+            s += 10
+        if self.installments_qty > 1:
+            s += 5
+        return s
+
     def to_dict(self) -> dict:
         return {
             "title": self.title,
