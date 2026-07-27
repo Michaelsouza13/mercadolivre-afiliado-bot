@@ -9,8 +9,7 @@ import requests
 logger = logging.getLogger(__name__)
 
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
-FALLBACK_MODEL = "meta-llama/llama-3.1-8b-instruct:free"
-FALLBACK_MODEL_2 = "google/gemini-2.0-flash-exp:free"
+FALLBACK_MODEL = "openrouter/free"
 
 HEADLINES_KEYWORDS = [
     (["perfume", "colonia", "essencia", "fragrancia", "cosmetico", "batom",
@@ -71,8 +70,6 @@ def _call_openrouter(offers: list, api_key: str, model: str) -> Optional[str]:
     if not api_key:
         return None
     model = model or FALLBACK_MODEL
-    if model and not model.endswith(":free") and not model.startswith("openai/"):
-        model = f"{model}:free"
     titles = [o.title.strip() for o in offers]
     lines = "\n".join(f'{i+1}. "{t}"' for i, t in enumerate(titles))
 
@@ -85,23 +82,6 @@ def _call_openrouter(offers: list, api_key: str, model: str) -> Optional[str]:
         'Formato: [{"id": 1, "headline": "HEADLINE"}, ...]'
     )
 
-    payload = {
-        "model": model,
-        "messages": [{"role": "user", "content": prompt}],
-        "max_tokens": 500,
-        "temperature": 0.8,
-    }
-
-    raw = _do_openrouter_request(api_key, payload)
-    if raw is not None:
-        return raw
-
-    logger.info("Tentando modelo fallback: %s", FALLBACK_MODEL_2)
-    payload2 = {**payload, "model": FALLBACK_MODEL_2}
-    return _do_openrouter_request(api_key, payload2)
-
-
-def _do_openrouter_request(api_key: str, payload: dict) -> Optional[str]:
     try:
         resp = requests.post(
             OPENROUTER_URL,
@@ -109,7 +89,12 @@ def _do_openrouter_request(api_key: str, payload: dict) -> Optional[str]:
                 "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json",
             },
-            json=payload,
+            json={
+                "model": model,
+                "messages": [{"role": "user", "content": prompt}],
+                "max_tokens": 500,
+                "temperature": 0.8,
+            },
             timeout=30,
         )
         if not resp.ok:
