@@ -515,11 +515,12 @@ def main():
                 logger.error("Falha ao gerar URL para '%s': %s", offer.title[:40], e)
                 continue
 
+            platform_prefix = offer.product_id[:2] if len(offer.product_id) >= 2 else ""
+            platform_emoji = {"ML": "\U0001F7E1", "SH": "\U0001F7E0", "AE": "\U0001F534"}.get(platform_prefix, "")
+
             ok_tg = False
             if channel.telegram_chat_id:
                 try:
-                    platform_prefix = offer.product_id[:2] if len(offer.product_id) >= 2 else ""
-                    platform_emoji = {"ML": "\U0001F7E1", "SH": "\U0001F7E0", "AE": "\U0001F534"}.get(platform_prefix, "")
                     sender_tg.send_offer(
                         channel.telegram_chat_id, offer,
                         headline=headlines.get(offer.id),
@@ -534,7 +535,11 @@ def main():
             ok_wp = False
             if channel.whatsapp_group_jid and sender_wp:
                 try:
-                    sender_wp.send_offer(channel.whatsapp_group_jid, offer)
+                    sender_wp.send_offer(
+                        channel.whatsapp_group_jid, offer,
+                        headline=headlines.get(offer.id),
+                        platform_emoji=platform_emoji,
+                    )
                     ok_wp = True
                     logger.info("[%s] WhatsApp: %s", channel.name, offer.title[:60])
                 except Exception as e:
