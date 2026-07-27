@@ -1,3 +1,4 @@
+import ast
 import json
 import logging
 import random
@@ -141,7 +142,7 @@ def _try_extract_array(text: str, product_ids: list) -> Optional[dict]:
 
 
 def _try_regex_pairs(text: str, product_ids: list) -> Optional[dict]:
-    pairs = re.findall(r'"id"\s*:\s*(\d+)\s*,\s*"headline"\s*:\s*"([^"]+)"', text)
+    pairs = re.findall(r'["\']id["\']\s*:\s*(\d+)\s*,\s*["\']headline["\']\s*:\s*["\']([^"\']+)["\']', text)
     if len(pairs) >= len(product_ids) * 0.5:
         result = {}
         for idx_str, headline in pairs:
@@ -159,7 +160,10 @@ def _extract_from_data(data, product_ids: list) -> Optional[dict]:
     items = []
 
     if isinstance(data, list):
-        items = data
+        if data and not isinstance(data[0], dict):
+            items = [{"id": i + 1, "headline": str(v)} for i, v in enumerate(data) if v]
+        else:
+            items = data
     elif isinstance(data, dict):
         if "headlines" in data:
             items = data["headlines"]
@@ -207,12 +211,31 @@ def _validar_headline(texto: str) -> Optional[str]:
     return html.escape(texto)
 
 
+def _normalize_json(text: str) -> str:
+    text = text.strip().lstrip('\ufeff')
+    text = re.sub(r"(?<=[{,\s])'(?=[^\])}:,])", '"', text)
+    text = re.sub(r"'(?=\s*[:,}\]])", '"', text)
+    text = re.sub(r',\s*([}\]])', r'\1', text)
+    text = re.sub(r'(?<![{"\w])(\w+)(?=\s*:)', r'"\1"', text)
+    return text
+
+
+def _try_literal_eval(text: str, product_ids: list) -> Optional[dict]:
+    try:
+        data = ast.literal_eval(text)
+    except (ValueError, SyntaxError):
+        return None
+    return _extract_from_data(data, product_ids)
+
+
 def _parse_openrouter_response(text: str, product_ids: list) -> Optional[dict]:
+    text = _normalize_json(text)
     estrategias = [
         _try_direct_json,
         _try_extract_json_block,
         _try_extract_array,
         _try_regex_pairs,
+        _try_literal_eval,
     ]
     for fn in estrategias:
         result = fn(text, product_ids)
