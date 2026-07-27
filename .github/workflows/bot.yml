@@ -2,7 +2,7 @@ name: Bot ML Afiliado
 
 on:
   schedule:
-    - cron: '0 * * * *'
+    - cron: '0 6-23 * * *'
   workflow_dispatch:
 
 jobs:
@@ -65,4 +65,6 @@ jobs:
           SHOPEE_APP_SECRET: ${{ secrets.SHOPEE_APP_SECRET || '' }}
           SHOPEE_MAX_OFFERS: ${{ vars.SHOPEE_MAX_OFFERS || '5' }}
           SHOPEE_KEYWORDS: ${{ vars.SHOPEE_KEYWORDS || '' }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY || '' }}
+          OPENROUTER_MODEL: ${{ vars.OPENROUTER_MODEL || '' }}
         run: python src/bot.py

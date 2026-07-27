@@ -55,8 +55,8 @@ class TelegramSender:
             resp.raise_for_status()
         return True
 
-    def send_offer(self, chat_id: str, offer) -> bool:
-        message = self._format_offer_message(offer)
+    def send_offer(self, chat_id: str, offer, headline=None, platform_emoji="") -> bool:
+        message = self._format_offer_message(offer, headline, platform_emoji)
         if offer.image_url:
             try:
                 return self.send_photo(chat_id, offer.image_url, message)
@@ -64,16 +64,23 @@ class TelegramSender:
                 logger.warning("Falha ao enviar foto, enviando so texto: %s", e)
         return self.send_message(chat_id, message)
 
-    def _format_offer_message(self, offer) -> str:
+    def _format_offer_message(self, offer, headline=None, platform_emoji="") -> str:
         title = offer.title.strip()
         current = format_price(offer.current_price)
         old = format_price(offer.old_price) if offer.old_price else ""
         discount = offer.discount_label.strip() if offer.discount_label else ""
         url = offer.url.strip()
 
-        platform = offer.source.upper()
+        if headline and platform_emoji:
+            first_line = f"<b>{headline}</b> {platform_emoji}"
+        elif headline:
+            first_line = f"<b>{headline}</b>"
+        else:
+            platform = offer.source.upper()
+            first_line = f"\U0001F525 <b>PROMO\u00E7\u00C3O {platform}</b> \U0001F525"
+
         lines = [
-            f"\U0001F525 <b>PROMO\u00E7\u00C3O {platform}</b> \U0001F525",
+            first_line,
             "",
             f"\U0001F4CC <b>{title}</b>",
         ]

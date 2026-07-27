@@ -12,6 +12,7 @@ from urllib.parse import urlencode, urlparse, urlunparse
 import requests
 
 from aliexpress_scraper import AliExpressScraper
+from headlines import get_headlines
 from scraper import MercadoLivreScraper
 from shopee_scraper import ShopeeScraper
 from storage import load_sent_ids, save_sent_ids
@@ -464,6 +465,10 @@ def main():
 
     offers = _balance_offers(all_offers, max_offers)
 
+    openrouter_key = os.environ.get("OPENROUTER_API_KEY", "")
+    openrouter_model = os.environ.get("OPENROUTER_MODEL", "")
+    headlines = get_headlines(offers, openrouter_key, openrouter_model)
+
     channel_to_offers = defaultdict(list)
     for offer in offers:
         ch = match_channel(offer, channels)
@@ -513,9 +518,15 @@ def main():
             ok_tg = False
             if channel.telegram_chat_id:
                 try:
-                    sender_tg.send_offer(channel.telegram_chat_id, offer)
+                    platform_prefix = offer.product_id[:2] if len(offer.product_id) >= 2 else ""
+                    platform_emoji = {"ML": "\U0001F7E1", "SH": "\U0001F7E0", "AE": "\U0001F534"}.get(platform_prefix, "")
+                    sender_tg.send_offer(
+                        channel.telegram_chat_id, offer,
+                        headline=headlines.get(offer.id),
+                        platform_emoji=platform_emoji,
+                    )
                     ok_tg = True
-                    src = offer.product_id[:2] if len(offer.product_id) >= 2 else "??"
+                    src = platform_prefix or "??"
                     logger.info("[%s][%s] Telegram: %s", channel.name, src, offer.title[:60])
                 except Exception as e:
                     logger.error("[%s] Falha no Telegram: %s", channel.name, e)
