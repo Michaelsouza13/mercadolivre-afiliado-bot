@@ -516,7 +516,7 @@ def main():
                 continue
 
             platform_prefix = offer.product_id[:2] if len(offer.product_id) >= 2 else ""
-            platform_emoji = {"ML": "\U0001F7E1", "SH": "\U0001F7E0", "AE": "\U0001F534"}.get(platform_prefix, "")
+            platform_emoji = {"ML": "\U0001F49B", "SH": "\U0001F9E1", "AE": "\u2764"}.get(platform_prefix, "")
 
             ok_tg = False
             if channel.telegram_chat_id:
