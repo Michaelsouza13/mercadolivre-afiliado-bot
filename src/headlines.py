@@ -3,6 +3,7 @@ import json
 import logging
 import random
 import re
+import time
 from typing import Optional
 
 import requests
@@ -10,7 +11,11 @@ import requests
 logger = logging.getLogger(__name__)
 
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
-FALLBACK_MODEL = "openrouter/free"
+FALLBACK_MODELS = [
+    "google/gemini-2.0-flash-exp:free",
+    "meta-llama/llama-3.2-3b-instruct:free",
+]
+RETRY_DELAY = 2
 
 HEADLINES_KEYWORDS = [
     (["perfume", "colonia", "essencia", "fragrancia", "cosmetico", "batom",
@@ -67,22 +72,7 @@ FALLBACKS = [
 ]
 
 
-def _call_openrouter(offers: list, api_key: str, model: str) -> Optional[str]:
-    if not api_key:
-        return None
-    model = model or FALLBACK_MODEL
-    titles = [o.title.strip() for o in offers]
-    lines = "\n".join(f'{i+1}. "{t}"' for i, t in enumerate(titles))
-
-    prompt = (
-        "Gere headlines curtas, EM CAIXA ALTA, max 7 palavras, "
-        "tom informal e chamativo, para cada produto abaixo.\n"
-        "Responda APENAS com um array JSON valido, sem markdown.\n\n"
-        "Produtos:\n"
-        f"{lines}\n\n"
-        'Formato: [{"id": 1, "headline": "HEADLINE"}, ...]'
-    )
-
+def _do_request(api_key: str, model: str, messages: list) -> Optional[str]:
     try:
         resp = requests.post(
             OPENROUTER_URL,
@@ -92,22 +82,74 @@ def _call_openrouter(offers: list, api_key: str, model: str) -> Optional[str]:
             },
             json={
                 "model": model,
-                "messages": [{"role": "user", "content": prompt}],
-                "max_tokens": 500,
+                "messages": messages,
+                "max_tokens": 1000,
                 "temperature": 0.8,
             },
             timeout=30,
         )
         if not resp.ok:
-            logger.warning("OpenRouter error %s: %s", resp.status_code, resp.text[:300])
+            logger.warning("OpenRouter error %s [%s]: %s", resp.status_code, model, resp.text[:300])
             return None
         data = resp.json()
         raw = data["choices"][0]["message"]["content"]
-        logger.info("OpenRouter resposta bruta: %s", raw[:300])
+        logger.info("OpenRouter [%s]: %s", model, raw[:300])
         return raw
     except Exception as e:
-        logger.warning("OpenRouter request failed: %s", e)
+        logger.warning("OpenRouter request failed [%s]: %s", model, e)
         return None
+
+
+def _call_openrouter(offers: list, api_key: str, model: str) -> Optional[str]:
+    if not api_key:
+        return None
+
+    titles = [o.title.strip() for o in offers]
+    lines = "\n".join(f'{i+1}. "{t}"' for i, t in enumerate(titles))
+
+    system_msg = (
+        "Voce e um copywriter de e-commerce brasileiro, criativo e descontraido. "
+        "Gere headlines curtas (max 7 palavras) em CAIXA ALTA, "
+        "no estilo 'zoacao entre amigos'. "
+        "Cada headline deve ser UNICA e relevante ao produto, "
+        "nunca generica. SEM frases como 'OFERTA IMPERDIVEL' ou 'NAO PERCA'. "
+        "Responda APENAS com o array JSON, sem explicacao."
+    )
+
+    user_msg = (
+        'Exemplos:\n'
+        '- Monitor Gamer AOC 27 144Hz -> "ESSE AQUI E PRA JOGAR AQUELE CSGO"\n'
+        '- Fone Bluetooth JBL Tune 510BT -> "PRA FAZER AQUELA FESTA NO CHURRAS"\n'
+        '- Aspirador Electrolux em Inox -> "SUA CASA EMPOEIRADA, NUNCA MAIS"\n\n'
+        "Agora gere para:\n"
+        f"{lines}\n\n"
+        'Formato: [{"id": 1, "headline": "HEADLINE"}, ...]'
+    )
+
+    messages = [
+        {"role": "system", "content": system_msg},
+        {"role": "user", "content": user_msg},
+    ]
+
+    models_to_try = [model] if model else FALLBACK_MODELS
+
+    for i, mdl in enumerate(models_to_try):
+        if i > 0:
+            time.sleep(RETRY_DELAY)
+
+        logger.info("OpenRouter tentando [%s] (tentativa %d/%d)...", mdl, i + 1, len(models_to_try))
+        raw = _do_request(api_key, mdl, messages)
+        if raw is not None:
+            return raw
+
+        if i == 0 and not model:
+            logger.info("  Gemini falhou, retentando em %ds...", RETRY_DELAY)
+            time.sleep(RETRY_DELAY)
+            raw = _do_request(api_key, mdl, messages)
+            if raw is not None:
+                return raw
+
+    return None
 
 
 def _try_direct_json(text: str, product_ids: list) -> Optional[dict]:
@@ -292,4 +334,9 @@ def get_headlines(offers: list, api_key: str = "", model: str = "") -> dict:
 
     logger.info("Headlines: %d via IA, %d via fallback (%d ofertas)",
                 ia_ok, kw_ok, len(offers))
+    for o in offers:
+        h = parsed.get(o.id, "")
+        if h:
+            pid = getattr(o, "product_id", o.id)
+            logger.info("  HEADLINE [%s] %s -> %s", pid, o.title[:50], h)
     return parsed
